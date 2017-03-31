@@ -1,0 +1,17 @@
+{
+  "locations": {
+    "hanoi,vietnam":
+    {
+      "diplay": "Hà Nội, Việt Nam",
+      "city": "Hanoi",
+      "country": "VN"
+    },
+
+    "pnom_penh,cambodia":
+    {
+      "display": "Phnom Penh, Cambodia",
+      "city": "Phnom Penh",
+      "country": "KH"
+    }
+  }
+}

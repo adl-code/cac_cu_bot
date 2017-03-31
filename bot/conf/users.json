@@ -2,12 +2,14 @@
   {
     "id": "duc",
     "type": "boss",
-    "names": ["duc_le"]
+    "names": ["duc_le"],
+    "location": "hanoi,vietnam"
   },
 
   {
     "id": "nam",
     "type": "bad_user",
-    "names": ["nguyennam"]
+    "names": ["nguyennam"],
+    "location": "phnom_penh,cambodia"
   }
 ]

@@ -27,6 +27,9 @@ class User(object):
     def get_name_list(self):
         return self._name_list
 
+    def get_location(self):
+        return self._location
+
     @staticmethod
     def parse_user_type(user_type):
         if user_type is None or not isinstance(user_type, (str, unicode)):
@@ -55,6 +58,7 @@ class User(object):
         else:
             return None
 
+        # Parse user type
         if 'type' in user_entry:
             user_type = User.parse_user_type(user_entry['type'])
             if user_type == User.UNKNOWN_USER:
@@ -62,16 +66,25 @@ class User(object):
         else:
             user_type = User.NORMAL_USER
 
+        # Name list
         if 'names' in user_entry:
             name_list = user_entry['names']
             if name_list is None or not isinstance(name_list, list):
                 return None
         else:
             return None
+
+        # Location
+        location = None
+        if 'location' in user_entry:
+            location = user_entry['location']
+
         user = User()
         user._name_list = name_list
         user._id = user_id
         user._type = user_type
+        if location is not None:
+            user._location = location
         return user
 
     @staticmethod
@@ -166,7 +179,8 @@ class BotEngine:
             try:
                 logging.config.fileConfig(logger_config_file)
                 parsed_from_file = True
-            except ConfigParser.Error:
+            except ConfigParser.Error as err:
+                print err.message
                 parsed_from_file = False
 
         self._logger = logging.getLogger(self._logger_name)
