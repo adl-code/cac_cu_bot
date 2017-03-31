@@ -1,0 +1,13 @@
+[
+  {
+    "id": "duc",
+    "type": "boss",
+    "names": ["duc_le"]
+  },
+
+  {
+    "id": "nam",
+    "type": "bad_user",
+    "names": ["nguyennam"]
+  }
+]
