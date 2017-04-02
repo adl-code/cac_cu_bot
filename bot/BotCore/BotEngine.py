@@ -283,7 +283,10 @@ class BotEngine:
         the_msg["raw"] = msg
         return the_msg
 
-    def __parse_msg(self, msg):
+    def __response(self, msg, response):
+        pass
+
+    def __process_msg(self, msg):
 
         if 'user' in msg and msg['user'] == self._bot_info['id']:
             bot_mentioned = True
@@ -292,9 +295,13 @@ class BotEngine:
         the_msg = BotEngine.__preprocess_msg(msg)
         for mod in self._mod_list:
             if bot_mentioned:
-                mod.on_mentioned(self, the_msg)
+                response = mod.on_mentioned(self, the_msg)
             else:
-                mod.on_not_mentioned(self, the_msg)
+                response = mod.on_not_mentioned(self, the_msg)
+            if response is not None:
+                # One of the module has response
+                self.__response(self, the_msg, response)
+                return
 
     def run(self):
         """
@@ -313,5 +320,5 @@ class BotEngine:
             msg_list = self._slack_client.rtm_read()
             if msg_list is not None:
                 for msg in msg_list:
-                    self.__parse_msg(msg)
+                    self.__process_msg(msg)
             time.sleep(delay_time)
