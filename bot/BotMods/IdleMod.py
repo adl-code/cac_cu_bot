@@ -1,13 +1,13 @@
 from BotCore import *
 
 
-class WeatherMod(BotEngine.BotBaseMod):
+class IdleMod(BotEngine.BotBaseMod):
     """
-    This module provides weather information
+    This module allows bot to chit-chat when people are idle
+    
     """
-    _mod_name = 'weather_mod'
-    _mod_desc = 'WeatherMod provides weather information for users'
-    _locations = None
+    _mod_name = 'idle_mod'
+    _mod_desc = "IdleMod give comments to idle users"
 
     def __init__(self):
         pass
@@ -27,10 +27,6 @@ class WeatherMod(BotEngine.BotBaseMod):
             data = None
         if data is None:
             return
-        if 'locations' in data:
-            self._locations = data['locations']
-            for loc in self._locations:
-                self._locations[loc]['user_list'] = []
 
     def on_registered(self, bot_core):
         """        
@@ -38,19 +34,6 @@ class WeatherMod(BotEngine.BotBaseMod):
         :param bot_core:
         :return: None      
         """
-        cfg_file = bot_core.get_config().get_path('weather_config_file')
-        if cfg_file is not None:
-            self.__parse_config(cfg_file)
-
-        # Build location map
-        if self._locations is not None:
-            user_list = bot_core.get_user_list()
-            if user_list is not None:
-                for user in user_list:
-                    location = user.get_location()
-                    if location is not None and location in self._locations:
-                        self._locations[location]['user_list'].append(user)
-
         bot_core.get_logger().debug('Module "%s" initialized' % self._mod_name)
 
     def on_mentioned(self, bot_core, msg):
@@ -60,7 +43,7 @@ class WeatherMod(BotEngine.BotBaseMod):
         :param msg: the message
         :return: reply message
         """
-        pass
+        return self.process_message(self)
 
     def on_not_mentioned(self, bot_core, msg):
         """
@@ -69,4 +52,7 @@ class WeatherMod(BotEngine.BotBaseMod):
         :param msg:  the message
         :return:  reply message
         """
+        return self.process_message(self)
+
+    def process_message(self, msg):
         pass

@@ -89,8 +89,12 @@ class BotConfig(object):
         """
         try:
             dsb_mod_list = parser.items('disabled_modules')
-            for mod_name, val in dsb_mod_list:
-                if isinstance(val, int) and isinstance(mod_name, (str, unicode)):
+            for mod_name, _ in dsb_mod_list:
+                try:
+                    val = parser.getint('disabled_modules', mod_name)
+                except ConfigParser.Error:
+                    val = None
+                if val is not None and isinstance(mod_name, (str, unicode)):
                     self._disabled_modules[mod_name.lower()] = val
         except ConfigParser.Error:
             return
