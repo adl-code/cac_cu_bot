@@ -48,6 +48,8 @@ class BotConfig(object):
     _api_token = None
     _paths = {}
     _disabled_modules = {}
+    _enabled_channels = {}
+    _enabled_user_pm = {}
 
     def __init__(self, config_file):
         self._config_file = config_file
@@ -64,8 +66,10 @@ class BotConfig(object):
         except ConfigParser.NoSectionError:
             pass
 
-        # Parse disabled modules
+        # Parse disabled/enabled options
         self.__parse_disabled_modules(parser)
+        self.__parse_enabled_channels(parser)
+        self.__parse_enabled_user_pm(parser)
 
     def __parse_api(self, parser):
         """
@@ -96,6 +100,42 @@ class BotConfig(object):
                     val = None
                 if val is not None and isinstance(mod_name, (str, unicode)):
                     self._disabled_modules[mod_name.lower()] = val
+        except ConfigParser.Error:
+            return
+
+    def __parse_enabled_user_pm(self, parser):
+        """
+        Parse the enabled user private message list options
+        :param parser: the parser object
+        :return: 
+        """
+        try:
+            user_pm_list = parser.items('enabled_user_pm')
+            for user_name, _ in user_pm_list:
+                try:
+                    val = parser.getint('enabled_user_pm', user_name)
+                except ConfigParser.Error:
+                    val = None
+                if val is not None and isinstance(user_name, (str, unicode)):
+                    self._enabled_user_pm[user_name.lower()] = val
+        except ConfigParser.Error:
+            return
+
+    def __parse_enabled_channels(self, parser):
+        """
+        Parse the enabled channel list options
+        :param parser: the parser object
+        :return: 
+        """
+        try:
+            enabled_channel_list = parser.items('enabled_channels')
+            for channel, _ in enabled_channel_list:
+                try:
+                    val = parser.getint('enabled_channels', channel)
+                except ConfigParser.Error:
+                    val = None
+                if val is not None and isinstance(channel, (str, unicode)):
+                    self._enabled_channels[channel.lower()] = val
         except ConfigParser.Error:
             return
 
@@ -146,7 +186,35 @@ class BotConfig(object):
         if name in self._disabled_modules:
             return self._disabled_modules[name] == 1
         else:
-            return None
+            return False
+
+    def is_user_pm_enabled(self, user_name):
+        """
+        Check whether the give user is allowed to chat in private message with both
+        :param user_name: name of user to check
+        :return: True if user private message is allowed, False otherwise
+        """
+        if user_name is None:
+            return False
+        name = user_name.lower()
+        if name in self._enabled_user_pm:
+            return self._enabled_user_pm[name] == 1
+        else:
+            return False
+
+    def is_channel_enabled(self, channel):
+        """
+        Check whether the given channel is enabled
+        :param channel: channel to check
+        :return: 
+        """
+        if channel is None:
+            return False
+        chan = channel.lower()
+        if chan in self._enabled_channels:
+            return self._enabled_channels[chan] == 1
+        else:
+            return False
 
     def make_full_path(self, file_name):
         if file_name is None or file_name == '' or self._config_file is None:
