@@ -13,6 +13,9 @@ class IdleMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
     _mod_name = 'idle_mod'
     _mod_desc = "IdleMod give comments to idle users"
     _time_frame = {}
+    _messages = {}
+    _active_channels = {}
+    _active_users = {}
 
     def __init__(self):
         self._last_idle_timer_fired = time.time()
@@ -32,7 +35,19 @@ class IdleMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
             data = None
         if data is None:
             return
-        self._time_frame = {}
+        if 'time_frames' in data:
+            self._time_frame = data['time_frames']
+
+        if 'messages' in data:
+            self._messages = data['messages']
+
+        if 'active_channels' in data:
+            for channel in data['active_channels']:
+                self._active_channels[channel] = {}
+
+        if 'active_users' in data:
+            for user in data['active_users']:
+                self._active_users[user] = {}
 
     def on_registered(self, bot_core):
         """        

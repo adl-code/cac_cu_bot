@@ -1,0 +1,69 @@
+{
+  "active_channels": ["bk3x"],
+  "active_users": ["duc_le"],
+  "time_frames": [
+    {
+      "name": "late_night",
+      "start": "23:00:00",
+      "end": "23:59:59",
+      "has_log": {
+        "message": "night",
+        "repeat_time": 0
+      }
+    },
+    {
+      "name": "night",
+      "start": "00:00:00",
+      "end": "03:59:59",
+      "has_log": {
+        "message": "night",
+        "repeat_time": 0
+      }
+    },
+    {
+      "name": "early_morning",
+      "start": "04:00:00",
+      "end": "06:30:00",
+      "first_log": {
+        "message": "early_morning"
+      }
+    },
+    {
+      "name": "late_morning",
+      "start": "08:00:00",
+      "end": "09:59:59",
+      "no_log": {
+        "message": "late_morning"
+      }
+    }
+  ],
+
+  "messages": {
+    "night": {
+      "messages": {
+        "all": [
+          "Deo ngu ah @(user)?",
+          "Thuc khuya the @(user)?"
+        ]
+      }
+    },
+    "early_morning": {
+      "messages": {
+        "all": [
+          "Day som vd nhe @(user)?",
+          "@(user) thuc ca dem ah?"
+        ]
+      }
+
+    },
+    "late_morning": {
+      "messages": {
+        "all": [
+          "Oh ca lo ngu nuong ah?",
+          "Day muon the cac che :giggle:"
+        ]
+      }
+
+    }
+  }
+}
