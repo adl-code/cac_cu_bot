@@ -8,7 +8,8 @@ import time
 
 class User(object):
     """
-    This class represents an user that Bot would interact with    
+    This class represents an user that Bot would interact with.
+    Please notice that user is different than "slack member"
     """
     UNKNOWN_USER = 0
     BOSS_USER = 1
@@ -106,11 +107,13 @@ class User(object):
             return None
         if not isinstance(input_data, list):
             return None
-        user_list = []
+        user_list = dict()
         for user_entry in input_data:
             user = User.parse_user_entry(user_entry)
             if user is not None:
-                user_list.append(user)
+                name_list = user.get_name_list()
+                for name in name_list:
+                    user_list[name] = user
         if len(user_list) == 0:
             return None
         return user_list
@@ -148,21 +151,12 @@ class BotBaseMod:
         pass
 
     @abstractmethod
-    def on_mentioned(self, bot_core, msg):
+    def on_message(self, bot_core, msg):
         """
-        Process message that mention bot name
-        :param bot_core: the bot engine
-        :param msg: the message
-        :return: reply message
-        """
-        pass
-
-    def on_not_mentioned(self, bot_core, msg):
-        """
-        Process messages that don't message bot name
+        Process messages
         :param bot_core: the core engine 
         :param msg:  the message
-        :return:  reply message
+        :return:  reply message, None to skip replying this message 
         """
         pass
 
@@ -174,6 +168,7 @@ class BotEngine:
     _logger_name = 'CacCuBot'
     BOT_NAME = "cac_cu"
     _member_list = {}
+    _channel_list = {}
     _bot_info = {}
     _slack_client = None
 
@@ -187,8 +182,10 @@ class BotEngine:
         # Initialize user list
         self.__init_user_list()
 
-        # Initialize member list
-        self.__initialize_member_list()
+        # Initialize member list, channel list ...
+        self.__init_slack_client()
+        self.__init_member_list()
+        self.__init_channel_list()
 
     def __init_logger(self):
         logger_config_file = self.get_config().get_path('logger_config_file')
@@ -218,16 +215,19 @@ class BotEngine:
     def __init_user_list(self):
         user_config_path = self.get_config().get_path('user_config_file')
         if user_config_path is None:
-            self.__user_list = None
+            self._user_list = None
         else:
-            self.__user_list = User.parse_user_list(user_config_path)
+            self._user_list = User.parse_user_list(user_config_path)
 
-    def __initialize_member_list(self):
-        self._slack_client = SlackClient(self.get_config().get_api_token())
+    def __init_slack_client(self):
+        if self._slack_client is None:
+            self._slack_client = SlackClient(self.get_config().get_api_token())
+
+    def __init_member_list(self):
         if self._slack_client is None:
             return
         api_call = self._slack_client.api_call("users.list")
-        if api_call.get('ok'):
+        if api_call is not None and api_call.get('ok'):
             # Retrieve all users so we can find our bot
             users = api_call.get('members')
             for user in users:
@@ -237,20 +237,38 @@ class BotEngine:
                     if user_name == self.BOT_NAME:
                         self._bot_info['name'] = user_name
                         self._bot_info['id'] = user_id
+                        self._bot_info['raw'] = user
                         self.get_logger().debug('Bot name = %s, ID = %s' % (user_name, user_id))
                     else:
                         member = dict()
                         member['name'] = user_name
                         member['id'] = user_id
+                        member['raw'] = user
                         self._member_list[user_id] = member
                         self.get_logger().debug('Member name = %s, ID = %s' % (user_name, user_id))
+
+    def __init_channel_list(self):
+        if self._slack_client is None:
+            return
+        api_call = self._slack_client.api_call("channels.list")
+        if api_call is not None and api_call.get('ok'):
+            channels = api_call.get('channels')
+            for channel in channels:
+                if 'id' not in channel or 'name' not in channel:
+                    continue
+                chan = dict()
+                chan['name'] = channel['name']
+                chan['id'] = channel['id']
+                chan['raw'] = channel
+                self._channel_list[chan['id']] = chan
+                self.get_logger().debug('Channel name = %s, ID = %s' % (chan['name'], chan['id']))
 
     def get_user_list(self):
         # Get user list
         # This list differs from "member list"
         # The first list contains pre-configured data for user information
         # The latter contains Slack user (member) list
-        return self.__user_list
+        return self._user_list
 
     def get_config(self):
         # Get config object
@@ -277,17 +295,46 @@ class BotEngine:
     def get_member_list(self):
         return self._member_list
 
-    @staticmethod
-    def __preprocess_msg(msg):
+    def __preprocess_msg(self, msg):
         the_msg = dict()
-        the_msg["raw"] = msg
+        the_msg['raw'] = msg
+        # Try tokenizing the message
+        if 'type' in msg and msg['type'] == 'message':
+            the_msg['is_message'] = True
+            bot_mentioned = False
+            if 'text' in msg:
+                the_msg['raw_words'] = msg['text'].split()
+                the_msg['words'] = map(str.lower, the_msg['raw_words'])
+                for word in the_msg['words']:
+                    if word == '@' + self._bot_info['name']:
+                        bot_mentioned = True
+                        break
+            the_msg['is_bot_mentioned'] = bot_mentioned
+
+        else:
+            the_msg['is_message'] = False
+
         return the_msg
 
     def __response(self, msg, response):
         pass
 
-    def __process_msg(self, msg):
+    def find_member(self, member_id):
+        """
+        Find member based on member id
+        :param member_id: ID of member to check
+        :return: a tuple of member object and user object representing the member
+        """
+        if member_id is None or member_id not in self._member_list:
+            return None, None
+        member = self._member_list[member_id]
+        if self._user_list is not None and member['name'] in self._user_list:
+            user = self._user_list[member['name']]
+        else:
+            user = None
+        return member, user
 
+    def __process_msg(self, msg):
         if 'user' in msg and msg['user'] == self._bot_info['id']:
             bot_mentioned = True
         else:
@@ -300,7 +347,7 @@ class BotEngine:
                 response = mod.on_not_mentioned(self, the_msg)
             if response is not None:
                 # One of the module has response
-                self.__response(self, the_msg, response)
+                self.__response(the_msg, response)
                 return
 
     def run(self):
