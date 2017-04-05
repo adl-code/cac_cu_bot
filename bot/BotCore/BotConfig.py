@@ -50,6 +50,7 @@ class BotConfig(object):
     _disabled_modules = {}
     _enabled_channels = {}
     _enabled_user_pm = {}
+    _should_be_offline = False
 
     def __init__(self, config_file):
         self._config_file = config_file
@@ -77,13 +78,17 @@ class BotConfig(object):
         :param parser: parser: the parser object
         :return: None
         """
-        # API token
+        # API token and offline mode
+        offline_mode = False
         try:
             token = parser.get('api', 'token')
+            offline_mode = parser.getboolean('api', 'offline_mode')
         except ConfigParser.NoSectionError, ConfigParser.NoOptionError:
             token = None
+            pass
         if token is not None:
             self.__parse_token(token)
+        self._should_be_offline = offline_mode
 
     def __parse_disabled_modules(self, parser):
         """
@@ -201,6 +206,9 @@ class BotConfig(object):
             return self._enabled_user_pm[name] == 1
         else:
             return False
+
+    def should_be_offline(self):
+        return self._should_be_offline
 
     def is_channel_enabled(self, channel):
         """

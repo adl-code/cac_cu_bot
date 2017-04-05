@@ -19,6 +19,7 @@ class User(object):
     def __init__(self):
         self._type = User.UNKNOWN_USER
         self._id = ""
+        self._location = None
         self._name_list = []
 
     def get_type(self):
@@ -86,8 +87,8 @@ class User(object):
         user._name_list = name_list
         user._id = user_id
         user._type = user_type
-        if location is not None:
-            user._location = location
+        user._location = location
+
         return user
 
     @staticmethod
@@ -107,7 +108,7 @@ class User(object):
             return None
         if not isinstance(input_data, list):
             return None
-        user_list = dict()
+        user_list = {}
         for user_entry in input_data:
             user = User.parse_user_entry(user_entry)
             if user is not None:
@@ -161,6 +162,17 @@ class BotBaseMod:
         pass
 
 
+class BotTimer:
+    """
+    This class provide simple method for timing bot tasks
+    """
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def on_timer(self, timer_id, bot_core):
+        pass
+
+
 class BotEngine:
     """
     This class represents the core bot engine
@@ -170,6 +182,7 @@ class BotEngine:
     _member_list = {}
     _channel_list = {}
     _bot_info = {}
+    _timer_list = {}
     _slack_client = None
 
     def __init__(self, config_file):
@@ -220,7 +233,7 @@ class BotEngine:
             self._user_list = User.parse_user_list(user_config_path)
 
     def __init_slack_client(self):
-        if self._slack_client is None:
+        if self._slack_client is None and not self.get_config().should_be_offline():
             self._slack_client = SlackClient(self.get_config().get_api_token())
 
     def __init_member_list(self):
@@ -240,10 +253,10 @@ class BotEngine:
                         self._bot_info['raw'] = user
                         self.get_logger().debug('Bot name = %s, ID = %s' % (user_name, user_id))
                     else:
-                        member = dict()
-                        member['name'] = user_name
-                        member['id'] = user_id
-                        member['raw'] = user
+                        member = {
+                            'name': user_name,
+                            'id': user_id,
+                            'raw': user}
                         self._member_list[user_id] = member
                         self.get_logger().debug('Member name = %s, ID = %s' % (user_name, user_id))
 
@@ -256,10 +269,11 @@ class BotEngine:
             for channel in channels:
                 if 'id' not in channel or 'name' not in channel:
                     continue
-                chan = dict()
-                chan['name'] = channel['name']
-                chan['id'] = channel['id']
-                chan['raw'] = channel
+                chan = {
+                    'name': channel['name'],
+                    'id': channel['id'],
+                    'raw': channel
+                }
                 self._channel_list[chan['id']] = chan
                 self.get_logger().debug('Channel name = %s, ID = %s' % (chan['name'], chan['id']))
 
@@ -295,9 +309,28 @@ class BotEngine:
     def get_member_list(self):
         return self._member_list
 
+    def find_member(self, member_id):
+        """
+        Find member based on member id
+        :param member_id: ID of member to check
+        :return: a tuple of member object and user object representing the member
+        """
+        if member_id is None or member_id not in self._member_list:
+            return None, None
+        member = self._member_list[member_id]
+        if self._user_list is not None and member['name'] in self._user_list:
+            user = self._user_list[member['name']]
+        else:
+            user = None
+        return member, user
+
+    def register_timer(self, timer_obj, timer_id):
+        if timer_id is None or timer_obj is None:
+            return
+        self._timer_list[timer_id] = timer_obj
+
     def __preprocess_msg(self, msg):
-        the_msg = dict()
-        the_msg['raw'] = msg
+        the_msg = {'raw': msg}
         # Try tokenizing the message
         if 'type' in msg and msg['type'] == 'message':
             the_msg['is_message'] = True
@@ -319,32 +352,12 @@ class BotEngine:
     def __response(self, msg, response):
         pass
 
-    def find_member(self, member_id):
-        """
-        Find member based on member id
-        :param member_id: ID of member to check
-        :return: a tuple of member object and user object representing the member
-        """
-        if member_id is None or member_id not in self._member_list:
-            return None, None
-        member = self._member_list[member_id]
-        if self._user_list is not None and member['name'] in self._user_list:
-            user = self._user_list[member['name']]
-        else:
-            user = None
-        return member, user
-
     def __process_msg(self, msg):
-        if 'user' in msg and msg['user'] == self._bot_info['id']:
-            bot_mentioned = True
-        else:
-            bot_mentioned = False
-        the_msg = BotEngine.__preprocess_msg(msg)
+        the_msg = self.__preprocess_msg(msg)
+        if the_msg is None:
+            return
         for mod in self._mod_list:
-            if bot_mentioned:
-                response = mod.on_mentioned(self, the_msg)
-            else:
-                response = mod.on_not_mentioned(self, the_msg)
+            response = mod.on_message(self, the_msg)
             if response is not None:
                 # One of the module has response
                 self.__response(the_msg, response)
@@ -355,17 +368,27 @@ class BotEngine:
         Execute the main bot thread
         :return: None
         """
+        is_offline_mode = self.get_config().should_be_offline()
         delay_time = 1   # 1 second
-        if self._slack_client is None:
-            self.get_logger().critical('Failed to interfacing with API server!')
-            return
-        if not self._slack_client.rtm_connect():
-            self.get_logger().critical('Failed to start the bot client!')
-            return
-        self.get_logger().info('==== Slack client connected to server ====')
+        if is_offline_mode:
+            self.get_logger().info('=== Slack Bot running in OFFLINE mode ===')
+        else:
+            if self._slack_client is None:
+                self.get_logger().critical('Failed to interfacing with API server!')
+                return
+            if not self._slack_client.rtm_connect():
+                self.get_logger().critical('Failed to start the bot client!')
+                return
+            self.get_logger().info('==== Slack Bot connected to server ====')
         while True:
-            msg_list = self._slack_client.rtm_read()
-            if msg_list is not None:
-                for msg in msg_list:
-                    self.__process_msg(msg)
+            # Fire the timers
+            for timer_id in self._timer_list:
+                self._timer_list[timer_id].on_timer(timer_id, self)
+
+            # Then process messages
+            if not is_offline_mode:
+                msg_list = self._slack_client.rtm_read()
+                if msg_list is not None:
+                    for msg in msg_list:
+                        self.__process_msg(msg)
             time.sleep(delay_time)
