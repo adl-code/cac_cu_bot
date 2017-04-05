@@ -2,6 +2,7 @@ from BotCore.BotEngine import BotEngine
 from BotCore.BotEngine import BotBaseMod
 import BotMods
 import sys
+import os
 
 
 def show_help():
@@ -80,6 +81,10 @@ def main():
 
     if config_file_path is None or config_file_path == '':
         config_file_path = 'bot.conf'
+
+    if not os.path.exists(config_file_path):
+        print("Config file not found!")
+        return 1
 
     bot = init_bot(config_file_path)
     if bot is None:
