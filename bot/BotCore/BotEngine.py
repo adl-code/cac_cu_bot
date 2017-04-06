@@ -179,6 +179,8 @@ class BotEngine:
     """
     _logger_name = 'CacCuBot'
     BOT_NAME = "cac_cu"
+    REFRESH_CHANNEL_HISTORY_TIMEOUT = 10
+
     _member_list = {}
     _member_list_name = {}
     _channel_list = {}
@@ -189,9 +191,12 @@ class BotEngine:
     _response_queue = []
     _channel_info = {}
     _channel_info_name = {}
+    _bot_prefs = None
+    _channel_history = {}
 
     def __init__(self, config_file):
         self._bot_config = BotConfig(config_file)
+        self._bot_prefs = BotPrefs(os.path.join(os.getcwd(), '.prefs'))
         self._mod_list = []
 
         # Initialize logger
@@ -204,6 +209,11 @@ class BotEngine:
         self.__init_slack_client()
         self.refresh_member_list()
         self.refresh_channel_list()
+
+        info = self.get_config().get_timeout('refresh_channel_history')
+        if info is None:
+            info = BotEngine.REFRESH_CHANNEL_HISTORY_TIMEOUT
+        self._refresh_channel_history_timeout = info
 
     def __init_logger(self):
         logger_config_file = self.get_config().get_path('logger_config_file')
@@ -283,6 +293,20 @@ class BotEngine:
                 self._channel_list[chan['id']] = chan
                 self._channel_list_name[chan['name']] = chan
                 self.get_logger().debug('Channel name = %s, ID = %s' % (chan['name'], chan['id']))
+        api_call = self._slack_client.api_call("groups.list")
+        if api_call is not None and api_call.get('ok'):
+            channels = api_call.get('groups')
+            for channel in channels:
+                if 'id' not in channel or 'name' not in channel:
+                    continue
+                chan = {
+                    'name': channel['name'],
+                    'id': channel['id'],
+                    'raw': channel
+                }
+                self._channel_list[chan['id']] = chan
+                self._channel_list_name[chan['name']] = chan
+                self.get_logger().debug('Channel name = %s, ID = %s' % (chan['name'], chan['id']))
 
     def get_user_list(self):
         # Get user list
@@ -294,6 +318,9 @@ class BotEngine:
     def get_config(self):
         # Get config object
         return self._bot_config
+
+    def get_prefs(self):
+        return self._bot_prefs
 
     def register_mod(self, mod):
         """
@@ -311,12 +338,12 @@ class BotEngine:
 
     def get_bot_info(self):
         # Get bot information
-        return self._bot_config
+        return self._bot_info
 
     def get_member_list(self):
         return self._member_list
 
-    def find_member_by_id(self, member_id):
+    def get_member_by_id(self, member_id):
         """
         Find member based on member id
         :param member_id: ID of member to check
@@ -331,7 +358,7 @@ class BotEngine:
             user = None
         return member, user
 
-    def find_member_by_name(self, member_name):
+    def get_member_by_name(self, member_name):
         if member_name is None or member_name not in self._member_list_name:
             return None, None
         member = self._member_list_name[member_name]
@@ -341,7 +368,7 @@ class BotEngine:
             user = None
         return member, user
 
-    def get_channel_info_by_id(self, channel_id, force=False):
+    def query_channel_info_by_id(self, channel_id, force=False):
         if channel_id is None:
             return None
         if channel_id in self._channel_info and not force:
@@ -354,8 +381,11 @@ class BotEngine:
             the_channel = chan_info.get('channel')
             self._channel_info[channel_id] = the_channel
             self._channel_info_name[the_channel['name']] = the_channel
+            return self._channel_info_name[channel_id]
+        else:
+            return None
 
-    def get_channel_info_by_name(self, channel_name, force=False):
+    def query_channel_info_by_name(self, channel_name, force=False):
         if channel_name is None:
             return None
         if channel_name in self._channel_info_name and not force:
@@ -371,6 +401,56 @@ class BotEngine:
             the_channel = chan_info.get('channel')
             self._channel_info[channel_id] = the_channel
             self._channel_info_name[the_channel['name']] = the_channel
+            return self._channel_info_name[channel_id]
+        else:
+            return None
+
+    def get_channel_by_id(self, channel_id):
+        if channel_id is None or channel_id not in self._channel_list:
+            return None
+        return self._channel_list[channel_id]
+
+    def get_channel_by_name(self, channel_name):
+        if channel_name is None or channel_name not in self._channel_list_name:
+            return None
+        return self._channel_list_name[channel_name]
+
+    def query_channel_history_by_name(self, channel_name, force=False, **kwargs):
+        """
+        Get channel message history by channel name
+        :param channel_name: channel name to query information 
+        :param force: force refresh channel history
+        :return: channel history
+        """
+        need_refresh = False
+        if channel_name is None or channel_name == '':
+            return None
+
+        if channel_name not in self._channel_list_name:
+            return None
+        channel_id = self._channel_info_name[channel_name]['id']
+
+        if force:
+            need_refresh = True
+        else:
+            if channel_id in self._channel_history:
+                last_refresh = self._channel_history[channel_id]['last_refresh']
+                if time.time() - last_refresh > self._refresh_channel_history_timeout:
+                    need_refresh = True
+            else:
+                need_refresh = True
+        if not need_refresh:
+            return self._channel_history[channel_id]['history']
+
+        if self._slack_client is None:
+            return None
+        result = self._slack_client.api_call('channels.history', channel=channel_id, **kwargs)
+        if result is not None and result.get('ok'):
+            self._channel_history[channel_id]['history'] = result
+            self._channel_history[channel_id]['last_refresh'] = time.time()
+            return result
+        else:
+            return None
 
     def register_timer(self, timer_obj, timer_id):
         if timer_id is None or timer_obj is None:
@@ -389,20 +469,30 @@ class BotEngine:
             bot_mentioned = False
             if 'text' in msg:
                 the_msg['raw_words'] = msg['text'].split()
-                the_msg['words'] = map(str.lower, the_msg['raw_words'])
+                the_msg['words'] = map(unicode.lower, the_msg['raw_words'])
                 for word in the_msg['words']:
                     if word == '@' + self._bot_info['name']:
                         bot_mentioned = True
                         break
             the_msg['is_bot_mentioned'] = bot_mentioned
-
         else:
             the_msg['is_message'] = False
 
         return the_msg
 
-    def __response(self, msg, response):
-        pass
+    def __response(self, response):
+        if response is None or 'text' not in response or 'channel' not in response:
+            return
+        text = response['text']
+        channel = response['channel']
+        if self._slack_client is None:
+            return
+        self._slack_client.api_call('chat.postMessage',
+                                    channel=channel,
+                                    text=text,
+                                    as_user=True,
+                                    parse='full',
+                                    link_names=True)
 
     def __process_msg(self, msg):
         the_msg = self.__preprocess_msg(msg)
@@ -412,7 +502,7 @@ class BotEngine:
             response = mod.on_message(self, the_msg)
             if response is not None:
                 # One of the module has response
-                self.__response(the_msg, response)
+                self.__response(response)
                 return
 
     def run(self):
@@ -443,4 +533,10 @@ class BotEngine:
                 if msg_list is not None:
                     for msg in msg_list:
                         self.__process_msg(msg)
+
+            # Then sending queue response
+            if not is_offline_mode:
+                for response in self._response_queue:
+                    self.__response(response)
+                self._response_queue = []
             time.sleep(delay_time)

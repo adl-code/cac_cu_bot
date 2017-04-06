@@ -1,7 +1,7 @@
 import binascii
 import ConfigParser
-import json
 import os
+import json
 
 
 class JsonLoader:
@@ -51,6 +51,7 @@ class BotConfig(object):
     _enabled_channels = {}
     _enabled_user_pm = {}
     _should_be_offline = False
+    _timeout = {}
 
     def __init__(self, config_file):
         self._config_file = config_file
@@ -71,6 +72,9 @@ class BotConfig(object):
         self.__parse_disabled_modules(parser)
         self.__parse_enabled_channels(parser)
         self.__parse_enabled_user_pm(parser)
+
+        # Parse timeout information
+        self.__parse_timeout_info(parser)
 
     def __parse_api(self, parser):
         """
@@ -100,11 +104,10 @@ class BotConfig(object):
             dsb_mod_list = parser.items('disabled_modules')
             for mod_name, _ in dsb_mod_list:
                 try:
-                    val = parser.getint('disabled_modules', mod_name)
+                    val = parser.getboolean('disabled_modules', mod_name)
                 except ConfigParser.Error:
-                    val = None
-                if val is not None and isinstance(mod_name, (str, unicode)):
-                    self._disabled_modules[mod_name.lower()] = val
+                    val = False
+                self._disabled_modules[mod_name.lower()] = val
         except ConfigParser.Error:
             return
 
@@ -118,11 +121,23 @@ class BotConfig(object):
             user_pm_list = parser.items('enabled_user_pm')
             for user_name, _ in user_pm_list:
                 try:
-                    val = parser.getint('enabled_user_pm', user_name)
+                    val = parser.getboolean('enabled_user_pm', user_name)
+                except ConfigParser.Error:
+                    val = False
+                self._enabled_user_pm[user_name.lower()] = val
+        except ConfigParser.Error:
+            return
+
+    def __parse_timeout_info(self, parser):
+        try:
+            timeout_info = parser.items('timeout')
+            for info, _ in timeout_info:
+                try:
+                    val = parser.getint('timeout', info)
                 except ConfigParser.Error:
                     val = None
-                if val is not None and isinstance(user_name, (str, unicode)):
-                    self._enabled_user_pm[user_name.lower()] = val
+                if val is not None:
+                    self._timeout[info] = val
         except ConfigParser.Error:
             return
 
@@ -136,11 +151,10 @@ class BotConfig(object):
             enabled_channel_list = parser.items('enabled_channels')
             for channel, _ in enabled_channel_list:
                 try:
-                    val = parser.getint('enabled_channels', channel)
+                    val = parser.getboolean('enabled_channels', channel)
                 except ConfigParser.Error:
-                    val = None
-                if val is not None and isinstance(channel, (str, unicode)):
-                    self._enabled_channels[channel.lower()] = val
+                    val = False
+                self._enabled_channels[channel.lower()] = val
         except ConfigParser.Error:
             return
 
@@ -179,6 +193,12 @@ class BotConfig(object):
         """
         return self._api_token
 
+    def get_timeout(self, info):
+        if info in self._timeout:
+            return self._timeout[info]
+        else:
+            return None
+
     def is_module_disabled(self, mod_name):
         """
         Check whether the given module name has been disabled
@@ -189,7 +209,7 @@ class BotConfig(object):
             return False
         name = mod_name.lower()
         if name in self._disabled_modules:
-            return self._disabled_modules[name] == 1
+            return self._disabled_modules[name]
         else:
             return False
 
@@ -203,7 +223,7 @@ class BotConfig(object):
             return False
         name = user_name.lower()
         if name in self._enabled_user_pm:
-            return self._enabled_user_pm[name] == 1
+            return self._enabled_user_pm[name]
         else:
             return False
 
@@ -220,7 +240,7 @@ class BotConfig(object):
             return False
         chan = channel.lower()
         if chan in self._enabled_channels:
-            return self._enabled_channels[chan] == 1
+            return self._enabled_channels[chan]
         else:
             return False
 
@@ -231,3 +251,44 @@ class BotConfig(object):
         if parent_dir is None or parent_dir == '':
             parent_dir = os.getcwd()
         return os.path.join(parent_dir, file_name)
+
+
+class BotPrefs:
+    """
+    Class representing the bot preferences
+    """
+    _prefs_dir = ''
+
+    def __init__(self, prefs_dir):
+        self._prefs_dir = prefs_dir
+        if not os.path.exists(self._prefs_dir):
+            os.mkdir(self._prefs_dir)
+
+    def save_prefs(self, pref_name, prefs):
+        if pref_name is None or len(pref_name) == 0 or prefs is None:
+            return False
+        pref_file = os.path.join(self._prefs_dir, pref_name)
+        data = json.dumps(prefs, indent=4, encoding='utf-8')
+        if data is None:
+            return False
+        try:
+            f = open(pref_file, "wt")
+            f.write(data)
+            f.close()
+            return True
+        except IOError:
+            return False
+
+    def load_prefs(self, pref_name):
+        if pref_name is None or len(pref_name) == 0:
+            return None
+        pref_file = os.path.join(self._prefs_dir, pref_name)
+        if not os.path.exists(pref_file):
+            return None
+        try:
+            f = open(pref_file, "rt")
+            result = json.load(f)
+            f.close()
+        except IOError:
+            result = None
+        return result
