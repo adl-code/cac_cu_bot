@@ -202,6 +202,8 @@ class BotEngine:
         # Initialize logger
         self.__init_logger()
 
+        self.get_logger().info('================= STARTING BOT ===================')
+
         # Initialize user list
         self.__init_user_list()
 
@@ -521,7 +523,7 @@ class BotEngine:
         is_offline_mode = self.get_config().should_be_offline()
         delay_time = 1   # 1 second
         if is_offline_mode:
-            self.get_logger().info('=== Slack Bot running in OFFLINE mode ===')
+            self.get_logger().info('Slack Bot running in OFFLINE mode')
         else:
             if self._slack_client is None:
                 self.get_logger().critical('Failed to interfacing with API server!')
@@ -529,7 +531,7 @@ class BotEngine:
             if not self._slack_client.rtm_connect():
                 self.get_logger().critical('Failed to start the bot client!')
                 return
-            self.get_logger().info('==== Slack Bot connected to server ====')
+            self.get_logger().info('Slack Bot connected to server')
         while True:
             # Fire the timers
             for timer_id in self._timer_list:

@@ -148,7 +148,7 @@ class IdleMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
 
         if 'no_msg' in tf and t_end < t_now <= (t_end + self._max_time_diff) and t_latest < t_start:
             # There is no log in this channel in this time frame
-            return {'reply': tf['no_msg']}
+            return {'reply': tf['no_msg'], 'type': 'no_msg'}
 
         if 'has_msg' in tf:
             latest_user = None
@@ -162,7 +162,7 @@ class IdleMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
             if latest_user is not None:
                 user, _ = bot_core.get_member_by_id(latest_user)
                 if user is not None and 'name' in user:
-                    return {'reply': tf['has_msg'], 'vars': {'$(user)': user['name']}}
+                    return {'reply': tf['has_msg'], 'vars': {'$(user)': user['name']}, 'type': 'has_msg'}
         return None
 
     def __process_time_frame_result(self, channel_id, tf, result, bot_core):
@@ -189,6 +189,7 @@ class IdleMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
         self._prefs['processed_frames'][tf['name']] = True
         self._prefs['processed_frames'][tf['name']] = True
         bot_core.get_prefs().save_prefs(IdleMod.PREFS_NAME, self._prefs)
+        bot_core.get_logger().info('[%s] post reply to %s:%s' % (self._mod_name, tf['name'], result['type']))
 
     def __query_channel_info(self, channel_id, bot_core):
         if 'channel_latest_msg_ts' not in self._prefs:

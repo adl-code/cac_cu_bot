@@ -32,6 +32,22 @@
         "no_msg": {
           "message": "late_morning"
         }
+      },
+      {
+        "name": "nap_time",
+        "start": "13:00:00",
+        "end": "14:29:59",
+        "no_msg": {
+          "message": "nap_time"
+        }
+      },
+      {
+        "name": "work_time",
+        "start": "15:00:00",
+        "end": "16:30:00",
+        "no_msg": {
+          "message": "work_time"
+        }
       }
     ]
   },
@@ -51,6 +67,19 @@
       "Ô cả lò ngủ nướng à?",
       "Dậy muộn thế các chế :giggle:",
       "Qua các bạn làm việc khuya à :sleepycoder: ..."
+    ],
+    "nap_time": [
+      "Tưởng các bạn đéo bao giờ ngủ trưa :sleeping:",
+      "Đậy đi các ông ơi :sleepycoder:",
+      "Giàu đâu đến kẻ ngủ trưa, sang đâu đến kẻ say sưa tối ngày.\nDậy đi các bố :triumph:"
+    ],
+    "work_time": [
+      "Các bạn làm việc chăm thế cơ à :giggle:",
+      "Cả làng ngoan như cún :man_in_business_suit_levitating:",
+      "Các ông đều đang làm việc đấy à :coding:",
+      "Vãi đái các bạn bận bịu hết mỗi mình ngồi chơi :performing_arts:",
+      "Nghỉ tay chơi tí các ông ơi :wave:",
+      "Chỗ các bạn mất mạng hết à đéo ai ý ới gì luôn :neutral:face"
     ]
   }
 }
