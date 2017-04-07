@@ -376,12 +376,16 @@ class BotEngine:
 
         if self._slack_client is None:
             return None
+        is_group = False
         chan_info = self._slack_client.api_call("channels.info", channel=channel_id)
+        if chan_info is None or not chan_info.get('ok'):
+            chan_info = self._slack_client.api_call("groups.info", channel=channel_id)
+            is_group = True
         if chan_info is not None and chan_info.get('ok'):
-            the_channel = chan_info.get('channel')
+            the_channel = chan_info.get('group' if is_group else 'channel')
             self._channel_info[channel_id] = the_channel
             self._channel_info_name[the_channel['name']] = the_channel
-            return self._channel_info_name[channel_id]
+            return self._channel_info[channel_id]
         else:
             return None
 
@@ -396,12 +400,16 @@ class BotEngine:
             return None
         channel_id = self._channel_list_name[channel_name]['id']
 
+        is_group = False
         chan_info = self._slack_client.api_call("channels.info", channel=channel_id)
+        if chan_info is None or not chan_info.get('ok'):
+            chan_info = self._slack_client.api_call("groups.info", channel=channel_id)
+            is_group = True
         if chan_info is not None and chan_info.get('ok'):
-            the_channel = chan_info.get('channel')
+            the_channel = chan_info.get('group' if is_group else 'channel')
             self._channel_info[channel_id] = the_channel
             self._channel_info_name[the_channel['name']] = the_channel
-            return self._channel_info_name[channel_id]
+            return self._channel_info[channel_id]
         else:
             return None
 

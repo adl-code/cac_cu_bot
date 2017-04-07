@@ -4,24 +4,16 @@
   "config": {
     "check_interval": 1,
     "max_time_diff": 300,
-    "response_time_diff": 300
+    "response_time_diff": 900
 
   },
   "time_frames": {
     "test_bot": [
       {
-        "name": "late_night",
-        "start": "23:00:00",
-        "end": "23:59:59",
-        "has_log": {
-          "message": "night"
-        }
-      },
-      {
         "name": "night",
         "start": "00:00:00",
         "end": "03:59:59",
-        "has_log": {
+        "has_msg": {
           "message": "night"
         }
       },
@@ -29,15 +21,15 @@
         "name": "early_morning",
         "start": "04:00:00",
         "end": "06:30:00",
-        "first_log": {
+        "has_msg": {
           "message": "early_morning"
         }
       },
       {
         "name": "late_morning",
         "start": "08:00:00",
-        "end": "09:59:59",
-        "no_log": {
+        "end": "09:29:59",
+        "no_msg": {
           "message": "late_morning"
         }
       }

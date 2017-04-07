@@ -99,19 +99,19 @@ class IdleMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
         t = time.mktime(time.localtime(float(raw_msg['ts'])))
         need_update_prefs = False
         if 'channnel_info' not in self._prefs:
-            self._prefs['channel_info'] = {}
+            self._prefs['channel_latest_msg_ts'] = {}
             need_update_prefs = True
-        if channel not in self._prefs['channel_info']:
-            self._prefs['channel_info'][channel] = {'latest': t, 'users': {user: t}}
+        if channel not in self._prefs['channel_latest_msg_ts']:
+            self._prefs['channel_latest_msg_ts'][channel] = {'latest': t, 'users': {user: t}}
             need_update_prefs = True
         else:
-            if self._prefs['channel_info'][channel]['latest'] < t:
-                self._prefs['channel_info'][channel]['latest'] = t
+            if self._prefs['channel_latest_msg_ts'][channel]['latest'] < t:
+                self._prefs['channel_latest_msg_ts'][channel]['latest'] = t
                 need_update_prefs = True
 
-            if (user not in self._prefs['channel_info'][channel]['users'] or
-                    self._prefs['channel_info'][channel]['users'][user] < t):
-                self._prefs['channel_info'][channel]['users'][user] = t
+            if (user not in self._prefs['channel_latest_msg_ts'][channel]['users'] or
+                    self._prefs['channel_latest_msg_ts'][channel]['users'][user] < t):
+                self._prefs['channel_latest_msg_ts'][channel]['users'][user] = t
                 need_update_prefs = True
         if need_update_prefs:
             bot_core.get_prefs().save_prefs(IdleMod.PREFS_NAME, self._prefs)
@@ -146,11 +146,11 @@ class IdleMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
 
         t_latest = channel_info['latest']
 
-        if 'no_log' in tf and t_end < t_now <= (t_end + self._max_time_diff) and t_latest < t_start:
+        if 'no_msg' in tf and t_end < t_now <= (t_end + self._max_time_diff) and t_latest < t_start:
             # There is no log in this channel in this time frame
-            return {'reply': tf['no_log']}
+            return {'reply': tf['no_msg']}
 
-        if 'has_log' in tf:
+        if 'has_msg' in tf:
             latest_user = None
             latest_t_user = -1
             for user in channel_info['users']:
@@ -162,7 +162,7 @@ class IdleMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
             if latest_user is not None:
                 user, _ = bot_core.get_member_by_id(latest_user)
                 if user is not None and 'name' in user:
-                    return {'reply': tf['has_log'], 'vars': {'$(user)': user['name']}}
+                    return {'reply': tf['has_msg'], 'vars': {'$(user)': user['name']}}
         return None
 
     def __process_time_frame_result(self, channel_id, tf, result, bot_core):
@@ -190,6 +190,20 @@ class IdleMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
         self._prefs['processed_frames'][tf['name']] = True
         bot_core.get_prefs().save_prefs(IdleMod.PREFS_NAME, self._prefs)
 
+    def __query_channel_info(self, channel_id, bot_core):
+        if 'channel_latest_msg_ts' not in self._prefs:
+            self._prefs['channel_latest_msg_ts'] = {}
+        chan_info = bot_core.query_channel_info_by_id(channel_id)
+        if chan_info is None or 'latest' not in chan_info:
+            return
+        latest = chan_info['latest']
+        if 'user' not in latest or 'ts' not in latest:
+            return
+        user = latest['user'].encode('utf-8')
+        ts = time.mktime(time.localtime(float(latest['ts'])))
+        self._prefs['channel_latest_msg_ts'][channel_id] = {'latest': ts, 'users': {user: ts}}
+        bot_core.get_prefs().save_prefs(IdleMod.PREFS_NAME, self._prefs)
+
     def __on_idle_timer(self, bot_core):
         if self._prefs is None:
             self._prefs = bot_core.get_prefs().load_prefs(IdleMod.PREFS_NAME)
@@ -210,9 +224,6 @@ class IdleMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
             self._prefs['processed_frames'] = {}
             bot_core.get_prefs().save_prefs(IdleMod.PREFS_NAME, self._prefs)
 
-        if 'channel_info' not in self._prefs:
-            return
-
         elapsed = time.time() - self._last_idle_timer_fired
         if elapsed > self._check_interval:
             self._last_idle_timer_fired = time.time()
@@ -224,10 +235,11 @@ class IdleMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
                 if ch is None or 'id' not in ch:
                     continue
                 channel_id = ch['id']
-                if channel_id not in self._prefs['channel_info']:
+                if 'channel_latest_msg_ts' not in self._prefs or channel_id not in self._prefs['channel_latest_msg_ts']:
+                    self.__query_channel_info(channel_id, bot_core)
+                if channel_id not in self._prefs['channel_latest_msg_ts']:
                     continue
-
-                channel_info = self._prefs['channel_info'][channel_id]
+                channel_info = self._prefs['channel_latest_msg_ts'][channel_id]
                 for tf in self._time_frames[channel]:
                     result = self.__check_time_frame(channel_info, tf, bot_core)
                     if result is not None:
