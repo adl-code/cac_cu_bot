@@ -34,6 +34,8 @@ class IdleMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
         return self._mod_desc
 
     def __parse_config(self, config_file):
+        if config_file is None:
+            return
         try:
             f = open(config_file, "rt")
             data = BotConfig.JsonLoader.json_load_byteified(f)
@@ -78,7 +80,7 @@ class IdleMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
         bot = bot_core.get_bot_info()
         if bot is not None and 'id' in bot:
             self._bot_id = bot['id']
-        bot_core.get_logger().debug('[%s] Module initialized' % self._mod_name)
+        bot_core.get_logger().debug('[%s] module initialized' % self._mod_name)
 
     def on_message(self, bot_core, msg):
         """
@@ -188,7 +190,6 @@ class IdleMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
         response = {'text': reply_msg, 'channel': channel_id}
         bot_core.queue_response(response)
         self._prefs['last_post'] = time.time()
-        self._prefs['processed_frames'][tf['name']] = True
         self._prefs['processed_frames'][tf['name']] = True
         bot_core.get_prefs().save_prefs(IdleMod.PREFS_NAME, self._prefs)
         bot_core.get_logger().info('[%s] post reply to %s:%s' % (self._mod_name, tf['name'], result['type']))

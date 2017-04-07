@@ -1,0 +1,13 @@
+{
+  "active_channels": ["bk3x"],
+  "channels": {
+    "bk3x": {
+      "rules": "ignorant"
+    }
+  },
+  "rules": {
+    "ignorant": {
+
+    }
+  }
+}

@@ -496,16 +496,21 @@ class BotEngine:
     def __preprocess_msg(self, msg):
         the_msg = {'raw': msg}
         # Try tokenizing the message
-        if 'type' in msg and msg['type'] == 'message':
+        if 'type' in msg and msg['type'] == 'message' and 'subtype' not in msg:
             the_msg['is_message'] = True
             bot_mentioned = False
             if 'text' in msg:
-                the_msg['raw_words'] = msg['text'].split()
-                the_msg['words'] = map(unicode.lower, the_msg['raw_words'])
+                the_msg['raw_words'] = [s.encode('utf-8') for s in msg['text'].split()]
+                the_msg['words'] = map(str.lower, the_msg['raw_words'])
                 for word in the_msg['words']:
-                    if word == '@' + self._bot_info['name']:
+                    if word == '<@' + self._bot_info['name'] + '>' or word == self._bot_info['name']:
                         bot_mentioned = True
                         break
+                if not bot_mentioned:
+                    for word in the_msg['raw_words']:
+                        if word == '<@' + self._bot_info['id'] + '>':
+                            bot_mentioned = True
+                            break
             the_msg['is_bot_mentioned'] = bot_mentioned
         else:
             the_msg['is_message'] = False

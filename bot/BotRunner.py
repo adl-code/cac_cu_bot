@@ -48,7 +48,8 @@ def init_bot(config_file_path):
     mods = [
         BotMods.WeatherMod.WeatherMod(),
         BotMods.IdleMod.IdleMod(),
-        BotMods.InsultMod.InsultMod()
+        BotMods.InsultMod.InsultMod(),
+        BotMods.UnhandledMsgMod.UnhandledMsgMod()
     ]
 
     for mod in mods:

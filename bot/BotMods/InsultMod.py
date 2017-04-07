@@ -5,6 +5,7 @@ class InsultMod(BotEngine.BotBaseMod):
     """
     This module logs insulting chat from people and behaves accordingly
     """
+    PREFS_NAME = 'InsultMod'
     _mod_name = 'InsultMod'
     _mod_desc = 'This module logs insulting chat from people and behaves accordingly'
 
