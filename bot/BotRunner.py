@@ -47,7 +47,8 @@ def init_bot(config_file_path):
     BotBaseMod.register(BotMods.WeatherMod.WeatherMod)
     mods = [
         BotMods.WeatherMod.WeatherMod(),
-        BotMods.IdleMod.IdleMod()
+        BotMods.IdleMod.IdleMod(),
+        BotMods.InsultMod.InsultMod()
     ]
 
     for mod in mods:

@@ -167,9 +167,11 @@ class IdleMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
 
     def __process_time_frame_result(self, channel_id, tf, result, bot_core):
         if result is None or 'reply' not in result:
+            bot_core.get_logger.warning('[%s] reply not found' % self._mod_name)
             return
         reply = result['reply']
         if 'message' not in reply or reply['message'] not in self._messages:
+            bot_core.get_logger.warning('[%s] reply message not found' % self._mod_name)
             return
 
         msg_list = self._messages[reply['message']]

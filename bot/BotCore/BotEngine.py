@@ -179,6 +179,7 @@ class BotEngine:
     """
     _logger_name = 'CacCuBot'
     BOT_NAME = "cac_cu"
+    PREFS_NAME = "bot_engine"
     REFRESH_CHANNEL_HISTORY_TIMEOUT = 10
 
     _member_list = {}
@@ -193,6 +194,9 @@ class BotEngine:
     _channel_info_name = {}
     _bot_prefs = None
     _channel_history = {}
+    _post_delay = 10
+    _refresh_time = 5
+    _prefs = {}
 
     def __init__(self, config_file):
         self._bot_config = BotConfig(config_file)
@@ -201,6 +205,8 @@ class BotEngine:
 
         # Initialize logger
         self.__init_logger()
+
+        self.__load_config()
 
         self.get_logger().info('================= STARTING BOT ===================')
 
@@ -216,6 +222,18 @@ class BotEngine:
         if info is None:
             info = BotEngine.REFRESH_CHANNEL_HISTORY_TIMEOUT
         self._refresh_channel_history_timeout = info
+
+    def __load_config(self):
+        val = self.get_config().get_timeout('engine_post_delay')
+        if val is not None:
+            self._post_delay = int(val)
+        val = self.get_config().get_timeout('engine_refresh_time')
+        if val is not None:
+            self._refresh_time = int(val)
+
+        self._prefs = self.get_prefs().load_prefs(BotEngine.PREFS_NAME)
+        if self._prefs is None:
+            self._prefs = {'last_response': 0}
 
     def __init_logger(self):
         logger_config_file = self.get_config().get_path('logger_config_file')
@@ -471,6 +489,10 @@ class BotEngine:
         if response is not None:
             self._response_queue.append(response)
 
+    def insert_top_response(self, response):
+        if response is not None:
+            self._response_queue.insert(0, response)
+
     def __preprocess_msg(self, msg):
         the_msg = {'raw': msg}
         # Try tokenizing the message
@@ -492,17 +514,23 @@ class BotEngine:
 
     def __response(self, response):
         if response is None or 'text' not in response or 'channel' not in response:
-            return
+            return None
         text = response['text']
         channel = response['channel']
-        if self._slack_client is None:
-            return
+        if 'last_response' in self._prefs:
+            last_response = self._prefs['last_response']
+        else:
+            last_response = 0
+        if self._slack_client is None or time.time() - last_response < self._post_delay:
+            return response
         self._slack_client.api_call('chat.postMessage',
                                     channel=channel,
                                     text=text,
                                     as_user=True,
                                     parse='full',
                                     link_names=True)
+        self._prefs['last_response'] = time.time()
+        return None
 
     def __process_msg(self, msg):
         the_msg = self.__preprocess_msg(msg)
@@ -512,7 +540,7 @@ class BotEngine:
             response = mod.on_message(self, the_msg)
             if response is not None:
                 # One of the module has response
-                self.__response(response)
+                self.insert_top_response(response)
                 return
 
     def run(self):
@@ -521,7 +549,6 @@ class BotEngine:
         :return: None
         """
         is_offline_mode = self.get_config().should_be_offline()
-        delay_time = 1   # 1 second
         if is_offline_mode:
             self.get_logger().info('Slack Bot running in OFFLINE mode')
         else:
@@ -544,9 +571,12 @@ class BotEngine:
                     for msg in msg_list:
                         self.__process_msg(msg)
 
-            # Then sending queue response
+            # Then send queued response
             if not is_offline_mode:
+                not_processed_list = []
                 for response in self._response_queue:
-                    self.__response(response)
-                self._response_queue = []
-            time.sleep(delay_time)
+                    result = self.__response(response)
+                    if result is not None:
+                        not_processed_list.append(result)
+                self._response_queue = not_processed_list
+            time.sleep(self._refresh_time)

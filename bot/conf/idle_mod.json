@@ -2,8 +2,8 @@
   "active_channels": ["bk3x", "test_bot"],
   "active_users": ["duc_le"],
   "config": {
-    "check_interval": 1,
-    "max_time_diff": 300,
+    "check_interval": 15,
+    "max_time_diff": 600,
     "response_time_diff": 900
 
   },
@@ -48,6 +48,22 @@
         "no_msg": {
           "message": "work_time"
         }
+      },
+      {
+        "name": "dinner",
+        "start": "19:00:00",
+        "end": "20:29:59",
+        "no_msg": {
+          "message": "dinner"
+        }
+      },
+      {
+        "name": "sleep_soon",
+        "start": "21:30:00",
+        "end": "22:40:00",
+        "no_msg": {
+          "message": "sleep_soon"
+        }
       }
     ]
   },
@@ -55,7 +71,8 @@
   "messages": {
     "night": [
       "Đéo ngủ à @$(user)?",
-      "Thức khuya thế @$(user)?"
+      "Thức khuya thế @$(user)?",
+      "@$(user) mấy giờ rồi còn chat :zzz:"
     ],
 
     "early_morning": [
@@ -66,7 +83,7 @@
     "late_morning": [
       "Ô cả lò ngủ nướng à?",
       "Dậy muộn thế các chế :giggle:",
-      "Qua các bạn làm việc khuya à :sleepycoder: ..."
+      "Hôm qua các bạn làm việc khuya à :sleepycoder: ..."
     ],
     "nap_time": [
       "Tưởng các bạn đéo bao giờ ngủ trưa :sleeping:",
@@ -80,6 +97,17 @@
       "Vãi đái các bạn bận bịu hết mỗi mình ngồi chơi :performing_arts:",
       "Nghỉ tay chơi tí các ông ơi :wave:",
       "Chỗ các bạn mất mạng hết à đéo ai ý ới gì luôn :neutral:face"
-    ]
+    ],
+      "dinner": [
+        "Ăn lâu thế các bạn ơi :hamburger:",
+        ":disappointed: vắng lặng vl!",
+        "Family time có khác :family:, chả ai nói gì ..."
+      ],
+      "sleep_soon": [
+        "Ô hôm nay ngủ sớm thế các bạn :sleeping:",
+        "Cả lò ngủ rồi á :sleepycoder:",
+        "Các thanh niên hôm nay đi ngủ sớm à :sleepy:",
+        "Mấy giờ mà đã ngủ hết thế các chế :zzz:"
+      ]
   }
 }
