@@ -3,6 +3,7 @@ from BotCore.BotEngine import BotBaseMod
 import BotMods
 import sys
 import os
+import random
 
 
 def show_help():
@@ -90,6 +91,7 @@ def main():
     if bot is None:
         print("Failed to initialized bot object")
         return 1
+    random.seed()
     bot.run()
     return 1
 
