@@ -40,12 +40,38 @@ class UnhandledMsgMod(BotEngine.BotBaseMod):
             return
         if 'channel' not in msg['raw']:
             return
-        if 'user' not in msg['raw'] or msg['raw']['user'] == self._bot_info['id']:
+        if 'user' not in msg['raw']:
             return
-        rule_name = 'mentioned' if msg['is_bot_mentioned'] else 'not_mentioned'
+        user_id = msg['raw']['user'].encode('utf-8')
+        if user_id == self._bot_info['id']:
+            return
+        user,_ = bot_core.get_member_by_id(user_id)
+        if user is None or 'name' not in user:
+            return
+        user_name = user['name']
+
+        channel_id = msg['raw']['channel'].encode('utf-8')
+        bot_mentioned = msg['is_bot_mentioned']
+
+        if bot_mentioned and 'options' in self._rules and 'replay_percentage' in self._rules['options']:
+            replay_percentage = int(self._rules['options']['replay_percentage'])
+            if replay_percentage > 100:
+                replay_percentage = 100
+            if random.randrange(0, 100) <= replay_percentage:
+                response_text = msg['raw']['text'].encode('utf-8').replace(
+                    '<@%s>' % self._bot_info['id'], '@%s' % user_name)
+                response = {'text': response_text, 'channel': channel_id}
+                bot_core.queue_response(response)
+                return
+        response_vars = {'$(user)': user_name}
+
+        rule_name = 'mentioned' if bot_mentioned else 'not_mentioned'
         if rule_name not in self._rules:
             return
         msg_list = self._rules[rule_name]
         response_text = msg_list[random.randrange(0, len(msg_list) - 1)]
-        response = {'text': response_text, 'channel': msg['raw']['channel'].encode('utf-8')}
+
+        for var in response_vars:
+            response_text = response_text.replace(var, response_vars[var])
+        response = {'text': response_text, 'channel': channel_id}
         bot_core.queue_response(response)

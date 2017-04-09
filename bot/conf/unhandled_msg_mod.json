@@ -1,12 +1,19 @@
 {
+  "options": {
+    "replay_percentage": 5
+  },
   "mentioned": [
     "Em đã biết gì đâu các anh cứ hỏi :weary:",
     "Bố đéo hiểu :cuoinhucho:",
     "Hỏi cái cặc cu ấy :vconfident:",
     "Đéo biết phải nói gì nữa :unamused:",
-    "Để bỗ nghĩ :thinking_face:",
+    "Để bố nghĩ :thinking_face:",
     "Cái này mình chưa được lập trình các chế ạ :coding:",
     "@duc_le chưa học Dijkstra nên mình đéo biết phải đối đáp ra sao nữa :vcry:",
-    "Thấy trả lời lặp lại rồi chứ gì? Đéo dùng AI nên bố ngu thế đấy :vboss:"
+    "Thấy trả lời lặp lại rồi chứ gì? Đéo dùng AI nên bố ngu thế đấy :vboss:",
+    "Các bạn spam mình ít thôi :expressionless:",
+    "Gì thế @$(user)?",
+    ":thinking_face: nhắc lại cái @$(user)",
+    "Mình ĐÉO trả lời bạn đâu bạn @$(user) ạ :stuck_out_tongue_closed_eyes:"
   ]
 }

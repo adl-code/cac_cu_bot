@@ -283,14 +283,14 @@ class BotEngine:
                     user_id = user['id']
                     user_name = user['name']
                     if user_name == self.BOT_NAME:
-                        self._bot_info['name'] = user_name
-                        self._bot_info['id'] = user_id
+                        self._bot_info['name'] = user_name.encode('utf-8')
+                        self._bot_info['id'] = user_id.encode('utf-8')
                         self._bot_info['raw'] = user
                         self.get_logger().debug('Bot name = %s, ID = %s' % (user_name, user_id))
                     else:
                         member = {
-                            'name': user_name,
-                            'id': user_id,
+                            'name': user_name.encode('utf-8'),
+                            'id': user_id.encode('utf-8'),
                             'raw': user}
                         self._member_list[user_id] = member
                         self._member_list_name[user_name] = member
@@ -306,8 +306,8 @@ class BotEngine:
                 if 'id' not in channel or 'name' not in channel:
                     continue
                 chan = {
-                    'name': channel['name'],
-                    'id': channel['id'],
+                    'name': channel['name'].encode('utf-8'),
+                    'id': channel['id'].encode('utf-8'),
                     'raw': channel
                 }
                 self._channel_list[chan['id']] = chan
@@ -320,8 +320,8 @@ class BotEngine:
                 if 'id' not in channel or 'name' not in channel:
                     continue
                 chan = {
-                    'name': channel['name'],
-                    'id': channel['id'],
+                    'name': channel['name'].encode('utf-8'),
+                    'id': channel['id'].encode('utf-8'),
                     'raw': channel
                 }
                 self._channel_list[chan['id']] = chan
@@ -501,6 +501,7 @@ class BotEngine:
             bot_mentioned = False
             if 'text' in msg:
                 the_msg['raw_words'] = [s.encode('utf-8') for s in msg['text'].split()]
+                the_msg['standardized'] = ' '.join(the_msg['raw_words'])
                 the_msg['words'] = map(str.lower, the_msg['raw_words'])
                 for word in the_msg['words']:
                     if word == '<@' + self._bot_info['name'] + '>' or word == self._bot_info['name']:
@@ -572,7 +573,7 @@ class BotEngine:
             # Then process messages
             if not is_offline_mode:
                 msg_list = self._slack_client.rtm_read()
-                if msg_list is not None:
+                if msg_list is not None and len(msg_list) > 0:
                     for msg in msg_list:
                         self.__process_msg(msg)
 
