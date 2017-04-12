@@ -5,12 +5,12 @@
       "min_check_diff": 30,
       "check_time": {
         "start": "18:15:00",
-        "end": "18:59:59",
-        "interval": 180
+        "end": "19:14:59",
+        "interval": 300
       }
     }
   },
-  "channels": ["bk3x", "test_bot"],
+  "channels": ["bk3x"],
   "options": {
     "min_check_diff": 30
   },
