@@ -411,10 +411,11 @@ class LottoMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
             attach = {'title': result['title'], 'text': result['date']}
             fields = []
             for prize_id, prize in sorted(result['prizes'].iteritems(), key=lambda (k, v): (k, v)):
+                val = ' - '.join(prize['values'])
                 field = {
                     'title': prize['title'],
-                    'value': ' - '.join(prize['values']),
-                    'short': len(prize['values']) <= 3}
+                    'value': val,
+                    'short': len(val) <= 23}
                 fields.append(field)
             attach['fields'] = fields
             attachments.append(attach)
