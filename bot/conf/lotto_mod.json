@@ -1,0 +1,23 @@
+{
+  "lotto_items": {
+    "xsmb": {
+      "min_check_diff": 30,
+      "check_time": {
+        "start": "00:00:00",
+        "end": "23:59:59",
+        "interval": 5
+      }
+    }
+  },
+  "channels": ["test_bot"],
+  "messages": {
+    "timer": [
+      "Kết quả các chế ơi!",
+      "Kết quả đây!",
+      "Làm giàu không khó ahihi",
+      "Giàu chưa các vị?",
+      "Chế nào trúng số cho mình ít tiền mua host khỏi phải xài Pi nha :vdoubt:",
+      "Giờ này cả phố Khâm Thiên ở trong nhà không ai ra đường nhé :vsure:"
+    ]
+  }
+}
