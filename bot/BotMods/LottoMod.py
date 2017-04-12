@@ -244,6 +244,7 @@ class LottoMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
     _mod_name = 'lotto_mod'
     _mod_desc = 'This module update lotto information and also provides user information when asked'
     _min_check_diff = 5  # in second
+    _bot_info = {}
 
     def __init__(self):
         self._prefs = None
@@ -312,6 +313,7 @@ class LottoMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
         if self._prefs is None:
             self._prefs = {}
         bot_core.register_timer(self, LottoMod.LOTTO_TIMER)
+        self._bot_info = bot_core.get_bot_info()
         self.__init_lotto_list()
         bot_core.get_logger().debug('[%s] module initialized' % self._mod_name)
 
@@ -319,6 +321,8 @@ class LottoMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
         if not msg[Bot.KEY_IS_MESSAGE] or not msg[Bot.KEY_IS_BOT_MENTIONED]:
             return None
         channel_id = msg[Bot.KEY_CHANNEL_ID]
+        if msg[Bot.KEY_FROM_USER_ID] == self._bot_info[Bot.KEY_ID]:
+            return None
         subs_dict = {'$(user)': msg[Bot.KEY_FROM_USER_NAME]}
 
         if 'commands' not in self._config or 'result' not in self._config['commands']:
