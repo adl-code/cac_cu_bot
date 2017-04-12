@@ -1,4 +1,5 @@
 from BotCore import *
+from BotCore.BotEngine import BotEngine as Bot
 import time
 import datetime
 import random
@@ -12,6 +13,7 @@ class IdleMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
     
     """
     PREFS_NAME = "idle_mod"
+
     _mod_name = 'idle_mod'
     _mod_desc = "IdleMod give comments to idle users"
     _time_frames = {}
@@ -78,8 +80,8 @@ class IdleMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
         if self._prefs is None:
             self._prefs = {}
         bot = bot_core.get_bot_info()
-        if bot is not None and 'id' in bot:
-            self._bot_id = bot['id']
+        if bot is not None and Bot.KEY_ID in bot:
+            self._bot_id = bot[Bot.KEY_ID]
         bot_core.get_logger().debug('[%s] module initialized' % self._mod_name)
 
     def on_message(self, bot_core, msg):
@@ -89,9 +91,9 @@ class IdleMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
         :param msg:  the message
         :return:  reply message, None to skip replying this message 
         """
-        if not msg['is_message']:
+        if not msg[Bot.KEY_IS_MESSAGE]:
             return None
-        raw_msg = msg['raw']
+        raw_msg = msg[Bot.KEY_RAW]
         if 'channel' not in raw_msg or 'user' not in raw_msg or 'ts' not in raw_msg:
             return None
         channel = raw_msg['channel'].encode('utf-8')
@@ -100,7 +102,7 @@ class IdleMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
             return None
         t = time.mktime(time.localtime(float(raw_msg['ts'])))
         need_update_prefs = False
-        if 'channnel_info' not in self._prefs:
+        if 'channel_latest_msg_ts' not in self._prefs:
             self._prefs['channel_latest_msg_ts'] = {}
             need_update_prefs = True
         if channel not in self._prefs['channel_latest_msg_ts']:
@@ -187,7 +189,7 @@ class IdleMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
             allow_sending = True
         if not allow_sending:
             return
-        response = {'text': reply_msg, 'channel': channel_id}
+        response = {Bot.KEY_TEXT: reply_msg, Bot.KEY_CHANNEL_ID: channel_id}
         bot_core.queue_response(response)
         self._prefs['last_post'] = time.time()
         self._prefs['processed_frames'][tf['name']] = True

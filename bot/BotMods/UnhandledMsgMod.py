@@ -1,4 +1,5 @@
 from BotCore import *
+from BotCore.BotEngine import BotEngine as Bot
 import random
 
 
@@ -6,8 +7,8 @@ class UnhandledMsgMod(BotEngine.BotBaseMod):
     """
     This module handles unhandled messages (messages that are not handled by all other modules)
     """
-    PREFS_NAME = 'UnhandledMsgMod'
-    _mod_name = 'UnhandledMsgMod'
+    PREFS_NAME = 'unhandled_msg_mod'
+    _mod_name = 'unhandled_msg_mod'
     _mod_desc = 'This module handles unhandled messages (messages that are not handled by all other modules)'
     _rules = {}
     _bot_info = None
@@ -36,7 +37,7 @@ class UnhandledMsgMod(BotEngine.BotBaseMod):
         bot_core.get_logger().info('[%s] module initialized' % self._mod_name)
 
     def on_message(self, bot_core, msg):
-        if not msg['is_message'] or 'raw' not in msg:
+        if not msg[Bot.KEY_IS_MESSAGE] or Bot.KEY_RAW not in msg:
             return
         if 'channel' not in msg['raw']:
             return
@@ -45,13 +46,13 @@ class UnhandledMsgMod(BotEngine.BotBaseMod):
         user_id = msg['raw']['user'].encode('utf-8')
         if user_id == self._bot_info['id']:
             return
-        user,_ = bot_core.get_member_by_id(user_id)
+        user, _ = bot_core.get_member_by_id(user_id)
         if user is None or 'name' not in user:
             return
         user_name = user['name']
 
-        channel_id = msg['raw']['channel'].encode('utf-8')
-        bot_mentioned = msg['is_bot_mentioned']
+        channel_id = msg[Bot.KEY_RAW]['channel'].encode('utf-8')
+        bot_mentioned = msg[Bot.KEY_IS_BOT_MENTIONED]
 
         if bot_mentioned and 'options' in self._rules and 'replay_percentage' in self._rules['options']:
             replay_percentage = int(self._rules['options']['replay_percentage'])
@@ -73,5 +74,5 @@ class UnhandledMsgMod(BotEngine.BotBaseMod):
 
         for var in response_vars:
             response_text = response_text.replace(var, response_vars[var])
-        response = {'text': response_text, 'channel': channel_id}
+        response = {Bot.KEY_TEXT: response_text, Bot.KEY_CHANNEL_ID: channel_id}
         bot_core.queue_response(response)

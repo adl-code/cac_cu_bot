@@ -182,6 +182,25 @@ class BotEngine:
     PREFS_NAME = "bot_engine"
     REFRESH_CHANNEL_HISTORY_TIMEOUT = 10
 
+    KEY_ID = 'id'
+    KEY_NAME = 'name'
+    KEY_RAW = 'raw'
+    KEY_HISTORY = 'history'
+    KEY_LAST_REFRESH = 'last_refresh'
+    KEY_CHANNEL_NAME = 'channel_name'
+    KEY_CHANNEL_ID = 'channel_id'
+    KEY_STANDARDIZED_TEXT = 'std_text'
+    KEY_STANDARDIZED_LOWER_TEXT = 'std_lower_text'
+    KEY_RAW_WORDS = 'raw_words'
+    KEY_LOWER_WORDS = 'raw_lower_words'
+    KEY_IS_MESSAGE = 'is_message'
+    KEY_IS_BOT_MENTIONED = 'is_bot_mentioned'
+    KEY_FROM_USER_NAME = 'from_user_name'
+    KEY_FROM_USER_ID = 'from_user_id'
+
+    KEY_TEXT = 'text'
+    KEY_LAST_RESPONSE = 'last_response'
+
     _member_list = {}
     _member_list_name = {}
     _channel_list = {}
@@ -233,7 +252,7 @@ class BotEngine:
 
         self._prefs = self.get_prefs().load_prefs(BotEngine.PREFS_NAME)
         if self._prefs is None:
-            self._prefs = {'last_response': 0}
+            self._prefs = {BotEngine.KEY_LAST_RESPONSE: 0}
 
     def __init_logger(self):
         logger_config_file = self.get_config().get_path('logger_config_file')
@@ -283,14 +302,14 @@ class BotEngine:
                     user_id = user['id']
                     user_name = user['name']
                     if user_name == self.BOT_NAME:
-                        self._bot_info['name'] = user_name.encode('utf-8')
-                        self._bot_info['id'] = user_id.encode('utf-8')
-                        self._bot_info['raw'] = user
+                        self._bot_info[BotEngine.KEY_NAME] = user_name.encode('utf-8')
+                        self._bot_info[BotEngine.KEY_ID] = user_id.encode('utf-8')
+                        self._bot_info[BotEngine.KEY_RAW] = user
                         self.get_logger().debug('Bot name = %s, ID = %s' % (user_name, user_id))
                     else:
                         member = {
-                            'name': user_name.encode('utf-8'),
-                            'id': user_id.encode('utf-8'),
+                            BotEngine.KEY_NAME: user_name.encode('utf-8'),
+                            BotEngine.KEY_ID: user_id.encode('utf-8'),
                             'raw': user}
                         self._member_list[user_id] = member
                         self._member_list_name[user_name] = member
@@ -306,12 +325,12 @@ class BotEngine:
                 if 'id' not in channel or 'name' not in channel:
                     continue
                 chan = {
-                    'name': channel['name'].encode('utf-8'),
-                    'id': channel['id'].encode('utf-8'),
-                    'raw': channel
+                    BotEngine.KEY_NAME: channel['name'].encode('utf-8'),
+                    BotEngine.KEY_ID: channel['id'].encode('utf-8'),
+                    BotEngine.KEY_RAW: channel
                 }
-                self._channel_list[chan['id']] = chan
-                self._channel_list_name[chan['name']] = chan
+                self._channel_list[chan[BotEngine.KEY_ID]] = chan
+                self._channel_list_name[chan[BotEngine.KEY_NAME]] = chan
                 self.get_logger().debug('Channel name = %s, ID = %s' % (chan['name'], chan['id']))
         api_call = self._slack_client.api_call("groups.list")
         if api_call is not None and api_call.get('ok'):
@@ -320,12 +339,12 @@ class BotEngine:
                 if 'id' not in channel or 'name' not in channel:
                     continue
                 chan = {
-                    'name': channel['name'].encode('utf-8'),
-                    'id': channel['id'].encode('utf-8'),
-                    'raw': channel
+                    BotEngine.KEY_NAME: channel['name'].encode('utf-8'),
+                    BotEngine.KEY_ID: channel['id'].encode('utf-8'),
+                    BotEngine.KEY_RAW: channel
                 }
-                self._channel_list[chan['id']] = chan
-                self._channel_list_name[chan['name']] = chan
+                self._channel_list[chan[BotEngine.KEY_ID]] = chan
+                self._channel_list_name[chan[BotEngine.KEY_NAME]] = chan
                 self.get_logger().debug('Channel name = %s, ID = %s' % (chan['name'], chan['id']))
 
     def get_user_list(self):
@@ -372,8 +391,8 @@ class BotEngine:
         if member_id is None or member_id not in self._member_list:
             return None, None
         member = self._member_list[member_id]
-        if self._user_list is not None and member['name'] in self._user_list:
-            user = self._user_list[member['name']]
+        if self._user_list is not None and member[BotEngine.KEY_NAME] in self._user_list:
+            user = self._user_list[member[BotEngine.KEY_NAME]]
         else:
             user = None
         return member, user
@@ -404,7 +423,7 @@ class BotEngine:
         if chan_info is not None and chan_info.get('ok'):
             the_channel = chan_info.get('group' if is_group else 'channel')
             self._channel_info[channel_id] = the_channel
-            self._channel_info_name[the_channel['name']] = the_channel
+            self._channel_info_name[the_channel[BotEngine.KEY_NAME]] = the_channel
             return self._channel_info[channel_id]
         else:
             return None
@@ -428,7 +447,7 @@ class BotEngine:
         if chan_info is not None and chan_info.get('ok'):
             the_channel = chan_info.get('group' if is_group else 'channel')
             self._channel_info[channel_id] = the_channel
-            self._channel_info_name[the_channel['name']] = the_channel
+            self._channel_info_name[the_channel[BotEngine.KEY_NAME]] = the_channel
             return self._channel_info[channel_id]
         else:
             return None
@@ -462,20 +481,20 @@ class BotEngine:
             need_refresh = True
         else:
             if channel_id in self._channel_history:
-                last_refresh = self._channel_history[channel_id]['last_refresh']
+                last_refresh = self._channel_history[channel_id][BotEngine.KEY_LAST_REFRESH]
                 if time.time() - last_refresh > self._refresh_channel_history_timeout:
                     need_refresh = True
             else:
                 need_refresh = True
         if not need_refresh:
-            return self._channel_history[channel_id]['history']
+            return self._channel_history[channel_id][BotEngine.KEY_HISTORY]
 
         if self._slack_client is None:
             return None
         result = self._slack_client.api_call('channels.history', channel=channel_id, **kwargs)
         if result is not None and result.get('ok'):
-            self._channel_history[channel_id]['history'] = result
-            self._channel_history[channel_id]['last_refresh'] = time.time()
+            self._channel_history[channel_id][BotEngine.KEY_HISTORY] = result
+            self._channel_history[channel_id][BotEngine.KEY_LAST_REFRESH] = time.time()
             return result
         else:
             return None
@@ -496,35 +515,49 @@ class BotEngine:
     def __preprocess_msg(self, msg):
         the_msg = {'raw': msg}
         # Try tokenizing the message
-        if 'type' in msg and msg['type'] == 'message' and 'subtype' not in msg:
-            the_msg['is_message'] = True
+        if 'type' in msg and msg['type'] == 'message' and 'subtype' not in msg and 'channel' in msg:
+            the_msg[BotEngine.KEY_IS_MESSAGE] = True
+            the_msg[BotEngine.KEY_CHANNEL_ID] = msg['channel'].encode('utf-8')
+            chan = self.get_channel_by_id(the_msg[BotEngine.KEY_CHANNEL_ID])
+            if chan is not None:
+                if not self.get_config().is_channel_enabled(chan['name']):
+                    return
+                the_msg[BotEngine.KEY_CHANNEL_NAME] = chan['name']
             bot_mentioned = False
+            if 'user' in msg:
+                user_id = msg['user'].encode('utf-8')
+                the_msg[BotEngine.KEY_FROM_USER_ID] = user_id
+                the_user, _ = self.get_member_by_id(user_id)
+                if the_user is not None:
+                    the_msg[BotEngine.KEY_FROM_USER_NAME] = the_user[BotEngine.KEY_NAME]
             if 'text' in msg:
-                the_msg['raw_words'] = [s.encode('utf-8') for s in msg['text'].split()]
-                the_msg['standardized'] = ' '.join(the_msg['raw_words'])
-                the_msg['words'] = map(str.lower, the_msg['raw_words'])
-                for word in the_msg['words']:
+                # Pre-process text content
+                the_msg[BotEngine.KEY_RAW_WORDS] = [s.encode('utf-8') for s in msg['text'].split()]
+                the_msg[BotEngine.KEY_STANDARDIZED_TEXT] = ' '.join(the_msg[BotEngine.KEY_RAW_WORDS])
+                the_msg[BotEngine.KEY_LOWER_WORDS] = [s.encode('utf-8').lower() for s in msg['text'].split()]
+                the_msg[BotEngine.KEY_STANDARDIZED_LOWER_TEXT] = ' '.join(the_msg[BotEngine.KEY_LOWER_WORDS])
+                for word in the_msg[BotEngine.KEY_LOWER_WORDS]:
                     if word == '<@' + self._bot_info['name'] + '>' or word == self._bot_info['name']:
                         bot_mentioned = True
                         break
                 if not bot_mentioned:
-                    for word in the_msg['raw_words']:
+                    for word in the_msg[BotEngine.KEY_RAW_WORDS]:
                         if word == '<@' + self._bot_info['id'] + '>':
                             bot_mentioned = True
                             break
-            the_msg['is_bot_mentioned'] = bot_mentioned
+            the_msg[BotEngine.KEY_IS_BOT_MENTIONED] = bot_mentioned
         else:
-            the_msg['is_message'] = False
+            the_msg[BotEngine.KEY_IS_MESSAGE] = False
 
         return the_msg
 
     def __response(self, response):
-        if response is None or 'text' not in response or 'channel' not in response:
+        if response is None or BotEngine.KEY_TEXT not in response or BotEngine.KEY_CHANNEL_ID not in response:
             return None
-        text = response['text']
-        channel = response['channel']
-        if 'last_response' in self._prefs:
-            last_response = self._prefs['last_response']
+        text = response[BotEngine.KEY_TEXT]
+        channel = response[BotEngine.KEY_CHANNEL_ID]
+        if BotEngine.KEY_LAST_RESPONSE in self._prefs:
+            last_response = self._prefs[BotEngine.KEY_LAST_RESPONSE]
         else:
             last_response = 0
         if self._slack_client is None or time.time() - last_response < self._post_delay:
@@ -535,7 +568,7 @@ class BotEngine:
                                     as_user=True,
                                     parse='full',
                                     link_names=True)
-        self._prefs['last_response'] = time.time()
+        self._prefs[BotEngine.KEY_LAST_RESPONSE] = time.time()
         return None
 
     def __process_msg(self, msg):

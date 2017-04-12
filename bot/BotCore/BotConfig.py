@@ -289,6 +289,6 @@ class BotPrefs:
             f = open(pref_file, "rt")
             result = json.load(f)
             f.close()
-        except IOError:
+        except (IOError, ValueError):
             result = None
         return result
