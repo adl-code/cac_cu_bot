@@ -1,23 +1,51 @@
 {
   "lotto_items": {
     "xsmb": {
+      "max_results": 3,
       "min_check_diff": 30,
       "check_time": {
-        "start": "00:00:00",
-        "end": "23:59:59",
-        "interval": 5
+        "start": "18:15:00",
+        "end": "18:59:59",
+        "interval": 180
       }
     }
   },
-  "channels": ["test_bot"],
+  "channels": ["bk3x", "test_bot"],
+  "options": {
+    "min_check_diff": 30
+  },
   "messages": {
     "timer": [
       "Kết quả các chế ơi!",
       "Kết quả đây!",
       "Làm giàu không khó ahihi",
       "Giàu chưa các vị?",
-      "Chế nào trúng số cho mình ít tiền mua host khỏi phải xài Pi nha :vdoubt:",
+      "Chế nào trúng số thì cho mình ít tiền mua host khỏi phải xài Pi nha :vdoubt:",
       "Giờ này cả phố Khâm Thiên ở trong nhà không ai ra đường nhé :vsure:"
+    ],
+    "on_demand": [
+      "@$(user): Kết quả đây!",
+      "Giàu chưa @$(user)?",
+      "@$(user) trúng số thì mua host cho mềnh khỏi phải xài Pi nha :vdoubt:",
+      "@$(user) trúng không trúng không :scream:"
+    ],
+    "ask_too_much": [
+      "Hỏi nhiều thế @$(user) :vangry:",
+      "@$(user) nay đánh bao tiền mà hỏi lắm thế :vconfident:",
+      "@$(user) hỏi lắm thế, trúng có cho tao tiền không :vdoubt:",
+      ":zzz:",
+      ":sleepycoder:",
+      "@$(user): bố đéo trả lời nhé :vangry:",
+      "@$(user): chịu, ai biết :giggle:",
+      "Mình biết nhưng mình đêk nói đấy @$(user) :laughing:",
+      "Biết nhưng không nói đâu @$(user) :facepunch:"
+    ]
+  },
+  "commands": {
+    "result": [
+      "chết cả đê",
+      "xổ số",
+      "đề đóm"
     ]
   }
 }

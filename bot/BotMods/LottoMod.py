@@ -11,7 +11,6 @@ class XSMB:
     This class provide information of the "XSMB" lotto result
     """
     PREFS_NAME = 'xsmb'
-    MAX_RESULTS = 3
 
     _start_check = None
     _end_check = None
@@ -19,6 +18,7 @@ class XSMB:
     _min_check_diff = 60
     _last_check = 0
     _results = {}
+    _max_results = 5
 
     def __init__(self, config):
         self._config = config
@@ -32,9 +32,10 @@ class XSMB:
                 self._check_interval = ct['interval']
         if 'min_check_diff' in config:
             self._min_check_diff = int(config['min_check_diff'])
+        if 'max_results' in config:
+            self._max_results = config['max_results']
 
-    @staticmethod
-    def __filter_result(result_list):
+    def _filter_result(self, result_list):
         """
         Filter the result list by keep the most recent items
         :param result_list: result list to filter
@@ -43,10 +44,10 @@ class XSMB:
         if result_list is None:
             return None
         ln = len(result_list)
-        if ln <= XSMB.MAX_RESULTS:
+        if ln <= self._max_results:
             return result_list
 
-        need_del = ln - XSMB.MAX_RESULTS
+        need_del = ln - self._max_results
         del_keys = []
         for key, _ in sorted(result_list.iteritems(), key=lambda (k, v): (k, v)):
             del_keys.append(key)
@@ -64,7 +65,7 @@ class XSMB:
         :param prefs: module preferences data
         :return: results, None if errors occurred
         """
-        if self._results is None:
+        if self._results is None or len(self._results) == 0:
             if XSMB.PREFS_NAME in prefs and 'results' in prefs[XSMB.PREFS_NAME]:
                 self._results = prefs[XSMB.PREFS_NAME]['results']
         now = time.localtime()
@@ -86,7 +87,7 @@ class XSMB:
         :return: results parsed from RSS feed, None if errors occurred
         """
         url = 'http://xskt.com.vn/rss-feed/mien-bac-xsmb.rss'
-        result_list = XSMB.__filter_result(XSMB.__parse_rss_data(url))
+        result_list = self._filter_result(XSMB.__parse_rss_data(url))
         need_update_prefs = False
 
         if XSMB.PREFS_NAME not in prefs:
@@ -112,7 +113,7 @@ class XSMB:
         :return: today's result or None if errors occurred
         """
         today = time.strftime('%Y/%m/%d', time.localtime())
-        today = '2017/04/10'
+        # today = '2017/04/10'
         if today in self._results:
             return self._results[today]
 
@@ -239,6 +240,7 @@ class LottoMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
     LOTTO_TIMER = 'LottoMod.timer'
     _mod_name = 'lotto_mod'
     _mod_desc = 'This module update lotto information and also provides user information when asked'
+    _min_check_diff = 5  # in second
 
     def __init__(self):
         self._prefs = None
@@ -255,6 +257,9 @@ class LottoMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
         except IOError:
             return
         self._config = data
+        if 'options' in self._config:
+            if 'min_check_diff' in self._config['options']:
+                self._min_check_diff = self._config['options']['min_check_diff']
 
     def __init_lotto_list(self):
         if 'lotto_items' not in self._config:
@@ -265,8 +270,31 @@ class LottoMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
             if 'disabled' not in xsmb or not xsmb['disabled']:
                 self._lotto_list.append(XSMB(xsmb))
 
-    def __get_lotto_result(self, bot_core):
-        pass
+    def __get_lotto_results(self, bot_core):
+        """
+        Return lotto results on demand
+        :param bot_core: the bot core object
+        :return: formatted message
+        """
+        result_list = []
+        for lotto in self._lotto_list:
+            result = lotto.get_results(bot_core, self._prefs)
+            if result is not None:
+                result_list.append(result)
+        if len(result_list) == 0:
+            return None
+        if 'messages' not in self._config or 'on_demand' not in self._config['messages']:
+            return None
+        msg = Bot.random_item_in_list(self._config['messages']['on_demand'])
+        msg += '\n>>>'
+        for results in result_list:
+            for date, result in sorted(results.iteritems(), reverse=True, key=lambda (k, v): (k, v)):
+                msg += '*' + result['title'] + '*\n'
+                for prize_id, prize in sorted(result['prizes'].iteritems(), key=lambda (k, v): (k, v)):
+                    msg += '*' + prize['title'] + '*: '
+                    msg += ' - '.join(prize['values']) + '\n'
+                msg += '\n'
+        return msg.strip()
 
     def get_mod_name(self):
         return self._mod_name
@@ -285,7 +313,51 @@ class LottoMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
         bot_core.get_logger().debug('[%s] module initialized' % self._mod_name)
 
     def on_message(self, bot_core, msg):
-        pass
+        if not msg[Bot.KEY_IS_MESSAGE] or not msg[Bot.KEY_IS_BOT_MENTIONED]:
+            return None
+        channel_id = msg[Bot.KEY_CHANNEL_ID]
+        subs_dict = {'$(user)': msg[Bot.KEY_FROM_USER_NAME]}
+
+        if 'commands' not in self._config or 'result' not in self._config['commands']:
+            return None
+        cmd_list = self._config['commands']['result']
+        cmd_found = False
+        for cmd in cmd_list:
+            if msg[Bot.KEY_STANDARDIZED_LOWER_TEXT].find(cmd) >= 0:
+                cmd_found = True
+                break
+        if not cmd_found:
+            return None
+        if 'last_check' in self._prefs:
+            last_check = self._prefs['last_check']
+        else:
+            last_check = 0
+        now = time.mktime(time.localtime())
+        if last_check + self._min_check_diff > now:
+            # User asks too much
+            reply_text = None
+            if 'messages' in self._config and 'ask_too_much' in self._config['messages']:
+                reply_text = Bot.random_item_in_list(self._config['messages']['ask_too_much'])
+            if reply_text is None:
+                # Return an empty object to specify that this message has been handled
+                return {}
+            else:
+                reply_text = Bot.replace_text(reply_text, subs_dict)
+                return {Bot.KEY_TEXT: reply_text, Bot.KEY_CHANNEL_ID: channel_id}
+
+        reply = self.__get_lotto_results(bot_core)
+        if reply is None:
+            # Return an empty object to specify that this message has been handled
+            return bot_core.queue_response({})
+        reply_text = Bot.replace_text(reply, subs_dict)
+
+        # Save preferences
+        self._prefs['last_check'] = now
+        bot_core.get_prefs().save_prefs(LottoMod.PREFS_NAME, self._prefs)
+
+        # Then return response
+        bot_core.get_logger().info('[%s] replying to user %s' % (self._mod_name, msg[Bot.KEY_FROM_USER_NAME]))
+        return {Bot.KEY_TEXT: reply_text, Bot.KEY_CHANNEL_ID: channel_id}
 
     def on_timer(self, timer_id, bot_core):
         if timer_id == LottoMod.LOTTO_TIMER:
@@ -297,7 +369,7 @@ class LottoMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
             result = lotto.on_timer(bot_core, self._prefs)
             if result is not None:
                 result_list.append(result)
-        msg = self.__format_timer_message(result_list)
+        msg = self.__format_scheduled_message(result_list)
         if msg is None or 'channels' not in self._config:
             return
         for chan in self._config['channels']:
@@ -313,9 +385,15 @@ class LottoMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
                 response = {
                     Bot.KEY_TEXT: msg,
                     Bot.KEY_CHANNEL_ID: channel[Bot.KEY_ID]}
+            bot_core.get_logger().info('[%s] displaying results as scheduled' % self._mod_name)
             bot_core.queue_response(response)
 
-    def __format_timer_message(self, result_list):
+    def __format_scheduled_message(self, result_list):
+        """
+        Format lotto result as scheduled
+        :param result_list: result list
+        :return: formatted message
+        """
         if result_list is None or len(result_list) == 0:
             return None
         msg = {}

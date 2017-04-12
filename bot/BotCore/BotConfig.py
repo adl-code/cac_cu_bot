@@ -291,7 +291,7 @@ class BotPrefs:
             return None
         try:
             f = open(pref_file, "rt")
-            result = json.load(f)
+            result = JsonLoader.json_load_byteified(f)
             f.close()
         except (IOError, ValueError):
             result = None

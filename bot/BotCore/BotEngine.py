@@ -600,6 +600,21 @@ class BotEngine:
             return None
         return item_list[random.randrange(0, len(item_list) - 1)]
 
+    @staticmethod
+    def replace_text(original_text, subs_dict):
+        """
+        Replace the original text with the list of substitution
+        :param original_text: original list to perform on
+        :param subs_dict: substitution dictionary 
+        :return: new text
+        """
+        if original_text is None or subs_dict is None:
+            return None
+        text = original_text
+        for subs in subs_dict:
+            text = text.replace(subs, subs_dict[subs])
+        return text
+
     def run(self):
         """
         Execute the main bot thread
@@ -615,7 +630,7 @@ class BotEngine:
             if not self._slack_client.rtm_connect():
                 self.get_logger().critical('Failed to start the bot client!')
                 return
-            self.get_logger().info('Slack Bot connected to server')
+            self.get_logger().info('Slack Bot CONNECTED to server')
         while True:
             # Fire the timers
             for timer_id in self._timer_list:

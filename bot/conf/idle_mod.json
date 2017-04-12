@@ -8,7 +8,7 @@
     "force_update_after": 7200
   },
   "time_frames": {
-    "test_bot": [
+    "bk3x": [
       {
         "name": "night",
         "start": "01:00:00",
