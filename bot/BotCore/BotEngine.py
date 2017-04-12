@@ -4,6 +4,7 @@ import logging
 import logging.config
 from slackclient import SlackClient
 import time
+import random
 
 
 class User(object):
@@ -189,6 +190,7 @@ class BotEngine:
     KEY_LAST_REFRESH = 'last_refresh'
     KEY_CHANNEL_NAME = 'channel_name'
     KEY_CHANNEL_ID = 'channel_id'
+    KEY_ATTACHMENTS = 'attachments'
     KEY_STANDARDIZED_TEXT = 'std_text'
     KEY_STANDARDIZED_LOWER_TEXT = 'std_lower_text'
     KEY_RAW_WORDS = 'raw_words'
@@ -556,6 +558,10 @@ class BotEngine:
             return None
         text = response[BotEngine.KEY_TEXT]
         channel = response[BotEngine.KEY_CHANNEL_ID]
+        if BotEngine.KEY_ATTACHMENTS in response:
+            attachments = response[BotEngine.KEY_ATTACHMENTS]
+        else:
+            attachments = None
         if BotEngine.KEY_LAST_RESPONSE in self._prefs:
             last_response = self._prefs[BotEngine.KEY_LAST_RESPONSE]
         else:
@@ -567,6 +573,7 @@ class BotEngine:
                                     text=text,
                                     as_user=True,
                                     parse='full',
+                                    attachments=attachments,
                                     link_names=True)
         self._prefs[BotEngine.KEY_LAST_RESPONSE] = time.time()
         return None
@@ -581,6 +588,17 @@ class BotEngine:
                 # One of the module has response
                 self.insert_top_response(response)
                 return
+
+    @staticmethod
+    def random_item_in_list(item_list):
+        """
+        Randomly choose an item in a list
+        :param item_list: the input list
+        :return: item randomly chosen
+        """
+        if item_list is None or len(item_list) == 0:
+            return None
+        return item_list[random.randrange(0, len(item_list) - 1)]
 
     def run(self):
         """

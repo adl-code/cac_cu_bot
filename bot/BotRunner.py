@@ -49,6 +49,7 @@ def init_bot(config_file_path):
         BotMods.WeatherMod.WeatherMod(),
         BotMods.IdleMod.IdleMod(),
         BotMods.InsultMod.InsultMod(),
+        BotMods.LottoMod.LottoMod(),
         BotMods.UnhandledMsgMod.UnhandledMsgMod()
     ]
 
@@ -58,7 +59,7 @@ def init_bot(config_file_path):
             bot.get_logger().warning('module class "%s" has no name!' % type(mod).__name__)
         if bot.get_config().is_module_disabled(mod_name):
             # Skip the disabled module
-            bot.get_logger().info('Skip disabled module "%s"' % mod_name)
+            bot.get_logger().info('Skip DISABLED module "%s"' % mod_name)
             continue
 
         bot.get_logger().info('Module "%s" loaded' % mod_name)

@@ -4,11 +4,11 @@
   "config": {
     "check_interval": 15,
     "max_time_diff": 600,
-    "response_time_diff": 900
-
+    "response_time_diff": 900,
+    "force_update_after": 7200
   },
   "time_frames": {
-    "bk3x": [
+    "test_bot": [
       {
         "name": "night",
         "start": "01:00:00",
@@ -28,7 +28,7 @@
       {
         "name": "late_morning",
         "start": "07:00:00",
-        "end": "09:29:59",
+        "end": "09:00:00",
         "no_msg": {
           "message": "late_morning"
         }
@@ -36,7 +36,7 @@
       {
         "name": "nap_time",
         "start": "13:00:00",
-        "end": "14:29:59",
+        "end": "14:14:59",
         "no_msg": {
           "message": "nap_time"
         }
@@ -52,7 +52,7 @@
       {
         "name": "dinner",
         "start": "19:00:00",
-        "end": "20:29:59",
+        "end": "20:14:59",
         "no_msg": {
           "message": "dinner"
         }
@@ -88,7 +88,10 @@
     "nap_time": [
       "Tưởng các bạn đéo bao giờ ngủ trưa :sleeping:",
       "Đậy đi các ông ơi :sleepycoder:",
-      "Giàu đâu đến kẻ ngủ trưa, sang đâu đến kẻ say sưa tối ngày.\nDậy đi các bố :triumph:"
+      "Giàu đâu đến kẻ ngủ trưa, sang đâu đến kẻ say sưa tối ngày.\nDậy đi các bố :triumph:",
+      "Người xứ nóng các vị thích ngủ trưa nhỉ :vangry:",
+      "Dậy đi các bạn :vnosebleed:",
+      "Vẫn chưa hết trưa cơ à :sleepycoder:"
     ],
     "work_time": [
       "Các bạn làm việc chăm thế cơ à :giggle:",
@@ -96,12 +99,14 @@
       "Các ông đều đang làm việc đấy à :coding:",
       "Vãi đái các bạn bận bịu hết mỗi mình ngồi chơi :performing_arts:",
       "Nghỉ tay chơi tí các ông ơi :wave:",
-      "Chỗ các bạn mất mạng hết à đéo ai ý ới gì luôn :neutral:face"
+      "Chỗ các bạn mất mạng hết à đéo ai ý ới gì luôn :neutralface:"
     ],
       "dinner": [
         "Ăn lâu thế các bạn ơi :hamburger:",
         ":disappointed: vắng lặng vl!",
-        "Family time có khác :family:, chả ai nói gì ..."
+        "Family time có khác :family:, chả ai nói gì ...",
+        "Chưa ăn xong cơ à các ông :wink:",
+        "Vừa ăn vừa xem :tv: à mà sao lâu thế các bạn? Xem thế không tốt đâu nhé :vsad:"
       ],
       "sleep_soon": [
         "Ô hôm nay ngủ sớm thế các bạn :sleeping:",

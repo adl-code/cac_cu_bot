@@ -25,6 +25,7 @@ class IdleMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
     _max_time_diff = 10  # seconds
     _response_time_diff = 10  # seconds
     _bot_id = None
+    _force_update_after = 3600  # 1 hour
 
     def __init__(self):
         self._last_idle_timer_fired = time.time()
@@ -62,11 +63,13 @@ class IdleMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
 
         if 'config' in data:
             if 'check_interval' in data['config']:
-                self._check_interval = int(data['config']['check_interval'])
+                self._check_interval = data['config']['check_interval']
             if 'max_time_diff' in data['config']:
-                self._max_time_diff = int(data['config']['max_time_diff'])
+                self._max_time_diff = data['config']['max_time_diff']
             if 'response_time_diff' in data['config']:
-                self._response_time_diff = int(data['config']['response_time_diff'])
+                self._response_time_diff = data['config']['response_time_diff']
+            if 'force_update_after' in data['config']:
+                self._force_update_after = data['config']['force_update_after']
 
     def on_registered(self, bot_core):
         """        
@@ -241,7 +244,16 @@ class IdleMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
                 if ch is None or 'id' not in ch:
                     continue
                 channel_id = ch['id']
-                if 'channel_latest_msg_ts' not in self._prefs or channel_id not in self._prefs['channel_latest_msg_ts']:
+                force_update = False
+                if ('channel_latest_msg_ts' in self._prefs and
+                    channel_id in self._prefs['channel_latest_msg_ts'] and
+                    'latest' in self._prefs['channel_latest_msg_ts'][channel_id]):
+                    latest = self._prefs['channel_latest_msg_ts'][channel_id]['latest']
+                    if latest + self._force_update_after <= time.mktime(time.localtime()):
+                        force_update = True
+                else:
+                    force_update = True
+                if force_update:
                     self.__query_channel_info(channel_id, bot_core)
                 if channel_id not in self._prefs['channel_latest_msg_ts']:
                     continue

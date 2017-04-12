@@ -264,10 +264,14 @@ class BotPrefs:
         if not os.path.exists(self._prefs_dir):
             os.mkdir(self._prefs_dir)
 
+    @staticmethod
+    def __make_pref_name(pref_name):
+        return pref_name + ".pref"
+
     def save_prefs(self, pref_name, prefs):
         if pref_name is None or len(pref_name) == 0 or prefs is None:
             return False
-        pref_file = os.path.join(self._prefs_dir, pref_name)
+        pref_file = os.path.join(self._prefs_dir, BotPrefs.__make_pref_name(pref_name))
         data = json.dumps(prefs, indent=4, encoding='utf-8')
         if data is None:
             return False
@@ -282,7 +286,7 @@ class BotPrefs:
     def load_prefs(self, pref_name):
         if pref_name is None or len(pref_name) == 0:
             return None
-        pref_file = os.path.join(self._prefs_dir, pref_name)
+        pref_file = os.path.join(self._prefs_dir, BotPrefs.__make_pref_name(pref_name))
         if not os.path.exists(pref_file):
             return None
         try:
