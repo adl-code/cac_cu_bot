@@ -1,5 +1,5 @@
-*.pref
+./**/*.pref
 
-*.log
+./**/*.log
 
-*.pyc
+./**/*.pyc
