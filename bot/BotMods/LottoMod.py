@@ -71,11 +71,14 @@ class XSMB:
         now = time.localtime()
         today = time.strftime('%Y/%m/%d', now)
 
-        if self._results is None or today not in self._results:
-            end_time = time.strftime('%Y/%m/%d ', now) + self._end_check
-            t_end = time.strptime(end_time, '%Y/%m/%d %H:%M:%S')
-            if now > t_end:
-                self.__query_results(bot_core, prefs)
+        if self._results is None or len(self._results) == 0:
+            self.__query_results(bot_core, prefs)
+        else:
+            if today not in self._results:
+                end_time = time.strftime('%Y/%m/%d ', now) + self._end_check
+                t_end = time.strptime(end_time, '%Y/%m/%d %H:%M:%S')
+                if now > t_end:
+                    self.__query_results(bot_core, prefs)
 
         return self._results
 
