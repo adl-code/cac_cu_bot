@@ -5,6 +5,7 @@ import logging.config
 from slackclient import SlackClient
 import time
 import random
+from threading import Thread, Event, RLock
 
 
 class User(object):
@@ -174,6 +175,24 @@ class BotTimer:
         pass
 
 
+class BotThread(Thread):
+    _args = None
+    _func = None
+    _stop_event = None
+    _timer_interval = 0
+
+    def __init__(self, timer_interval, stop_event, func, args=None):
+        Thread.__init__(self)
+        self._timer_interval = timer_interval
+        self._func = func
+        self._args = args
+        self._stop_event = stop_event
+
+    def run(self):
+        while not self._stop_event.wait(self._timer_interval):
+            self._func(*self._args)
+
+
 class BotEngine:
     """
     This class represents the core bot engine
@@ -208,7 +227,6 @@ class BotEngine:
     _channel_list = {}
     _channel_list_name = {}
     _bot_info = {}
-    _timer_list = {}
     _slack_client = None
     _response_queue = []
     _channel_info = {}
@@ -218,11 +236,15 @@ class BotEngine:
     _post_delay = 10
     _refresh_time = 5
     _prefs = {}
+    _stop_event = None
+    _response_lock = None
 
     def __init__(self, config_file):
         self._bot_config = BotConfig(config_file)
         self._bot_prefs = BotPrefs(os.path.join(os.getcwd(), '.prefs'))
         self._mod_list = []
+        self._stop_event = Event()
+        self._response_lock = RLock()
 
         # Initialize logger
         self.__init_logger()
@@ -501,18 +523,25 @@ class BotEngine:
         else:
             return None
 
-    def register_timer(self, timer_obj, timer_id):
+    @staticmethod
+    def on_timer(bot_core, timer_obj, timer_id):
+        timer_obj.on_timer(timer_id, bot_core)
+
+    def register_timer(self, timer_obj, timer_id, timer_interval):
         if timer_id is None or timer_obj is None:
             return
-        self._timer_list[timer_id] = timer_obj
+        t = BotThread(timer_interval, self._stop_event, BotEngine.on_timer, args=[self, timer_obj, timer_id])
+        t.start()
 
     def queue_response(self, response):
         if response is not None:
-            self._response_queue.append(response)
+            with self._response_lock:
+                self._response_queue.append(response)
 
     def insert_top_response(self, response):
         if response is not None:
-            self._response_queue.insert(0, response)
+            with self._response_lock:
+                self._response_queue.insert(0, response)
 
     def __preprocess_msg(self, msg):
         the_msg = {'raw': msg}
@@ -615,6 +644,31 @@ class BotEngine:
             text = text.replace(subs, subs_dict[subs])
         return text
 
+    @staticmethod
+    def main_timer_event(bot_engine, is_offline_mode):
+        bot_engine.on_check_messages(is_offline_mode)
+
+    def on_check_messages(self, is_offline_mode):
+        try:
+            if not is_offline_mode:
+                msg_list = self._slack_client.rtm_read()
+                if msg_list is not None and len(msg_list) > 0:
+                    for msg in msg_list:
+                        self.__process_msg(msg)
+
+                        # Then send queued response
+            if not is_offline_mode:
+                not_processed_list = []
+                with self._response_lock:
+                    for response in self._response_queue:
+                        result = self.__response(response)
+                        if result is not None:
+                            not_processed_list.append(result)
+                    self._response_queue = not_processed_list
+        except:
+            self.get_logger().exception('Exception on BotEngine.on_check_messages')
+            raise
+
     def run(self):
         """
         Execute the main bot thread
@@ -631,24 +685,6 @@ class BotEngine:
                 self.get_logger().critical('Failed to start the bot client!')
                 return
             self.get_logger().info('Slack Bot CONNECTED to server')
-        while True:
-            # Fire the timers
-            for timer_id in self._timer_list:
-                self._timer_list[timer_id].on_timer(timer_id, self)
 
-            # Then process messages
-            if not is_offline_mode:
-                msg_list = self._slack_client.rtm_read()
-                if msg_list is not None and len(msg_list) > 0:
-                    for msg in msg_list:
-                        self.__process_msg(msg)
-
-            # Then send queued response
-            if not is_offline_mode:
-                not_processed_list = []
-                for response in self._response_queue:
-                    result = self.__response(response)
-                    if result is not None:
-                        not_processed_list.append(result)
-                self._response_queue = not_processed_list
-            time.sleep(self._refresh_time)
+        t = BotThread(self._refresh_time, self._stop_event, BotEngine.main_timer_event, args=[self, is_offline_mode])
+        t.start()

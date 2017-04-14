@@ -10,17 +10,23 @@ class JsonLoader:
 
     @staticmethod
     def json_load_byteified(file_handle):
-        return JsonLoader.byteify(
-            json.load(file_handle, object_hook=JsonLoader.byteify),
-            ignore_dicts=True
-        )
+        try:
+            return JsonLoader.byteify(
+                json.load(file_handle, object_hook=JsonLoader.byteify),
+                ignore_dicts=True
+            )
+        except (ValueError, IOError):
+            return None
 
     @staticmethod
     def json_loads_byteified(json_text):
-        return JsonLoader.byteify(
-            json.loads(json_text, object_hook=JsonLoader.byteify),
-            ignore_dicts=True
-        )
+        try:
+            return JsonLoader.byteify(
+                json.loads(json_text, object_hook=JsonLoader.byteify),
+                ignore_dicts=True
+            )
+        except (ValueError, IOError):
+            return None
 
     @staticmethod
     def byteify(data, ignore_dicts=False):

@@ -77,7 +77,6 @@ class IdleMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
         :param bot_core:
         :return: None
         """
-        bot_core.register_timer(self, IDLE_TIMER)
         self.__parse_config(bot_core.get_config().get_path('idle_mod_config_file'))
         self._prefs = bot_core.get_prefs().load_prefs(IdleMod.PREFS_NAME)
         if self._prefs is None:
@@ -85,6 +84,7 @@ class IdleMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
         bot = bot_core.get_bot_info()
         if bot is not None and Bot.KEY_ID in bot:
             self._bot_id = bot[Bot.KEY_ID]
+        bot_core.register_timer(self, IDLE_TIMER, self._check_interval)
         bot_core.get_logger().debug('[%s] module initialized' % self._mod_name)
 
     def on_message(self, bot_core, msg):
@@ -233,33 +233,31 @@ class IdleMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
             self._prefs['processed_frames'] = {}
             bot_core.get_prefs().save_prefs(IdleMod.PREFS_NAME, self._prefs)
 
-        elapsed = time.time() - self._last_idle_timer_fired
-        if elapsed > self._check_interval:
-            self._last_idle_timer_fired = time.time()
-            # bot_core.get_logger().debug('[%s] Idle timer fired' % self._mod_name)
-            for channel in self._time_frames:
-                if channel not in self._active_channels:
-                    continue
-                ch = bot_core.get_channel_by_name(channel)
-                if ch is None or 'id' not in ch:
-                    continue
-                channel_id = ch['id']
-                force_update = False
-                if ('channel_latest_msg_ts' in self._prefs and
-                    channel_id in self._prefs['channel_latest_msg_ts'] and
+        self._last_idle_timer_fired = time.time()
+        # bot_core.get_logger().debug('[%s] Idle timer fired' % self._mod_name)
+        for channel in self._time_frames:
+            if channel not in self._active_channels:
+                continue
+            ch = bot_core.get_channel_by_name(channel)
+            if ch is None or 'id' not in ch:
+                continue
+            channel_id = ch['id']
+            force_update = False
+            if ('channel_latest_msg_ts' in self._prefs and
+                channel_id in self._prefs['channel_latest_msg_ts'] and
                     'latest' in self._prefs['channel_latest_msg_ts'][channel_id]):
-                    latest = self._prefs['channel_latest_msg_ts'][channel_id]['latest']
-                    if latest + self._force_update_after <= time.mktime(time.localtime()):
-                        force_update = True
-                else:
+                latest = self._prefs['channel_latest_msg_ts'][channel_id]['latest']
+                if latest + self._force_update_after <= time.mktime(time.localtime()):
                     force_update = True
-                if force_update:
-                    self.__query_channel_info(channel_id, bot_core)
-                if channel_id not in self._prefs['channel_latest_msg_ts']:
-                    continue
-                channel_info = self._prefs['channel_latest_msg_ts'][channel_id]
-                for tf in self._time_frames[channel]:
-                    result = self.__check_time_frame(channel_info, tf, bot_core)
-                    if result is not None:
-                        self.__process_time_frame_result(channel_id, tf, result, bot_core)
-                        break
+            else:
+                force_update = True
+            if force_update:
+                self.__query_channel_info(channel_id, bot_core)
+            if channel_id not in self._prefs['channel_latest_msg_ts']:
+                continue
+            channel_info = self._prefs['channel_latest_msg_ts'][channel_id]
+            for tf in self._time_frames[channel]:
+                result = self.__check_time_frame(channel_info, tf, bot_core)
+                if result is not None:
+                    self.__process_time_frame_result(channel_id, tf, result, bot_core)
+                    break

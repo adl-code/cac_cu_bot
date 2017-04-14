@@ -71,6 +71,7 @@ class XSMB:
         now = time.localtime()
         today = time.strftime('%Y/%m/%d', now)
 
+        # noinspection PyTypeChecker
         if self._results is None or len(self._results) == 0:
             self.__query_results(bot_core, prefs)
         else:
@@ -80,7 +81,8 @@ class XSMB:
                 if now > t_end:
                     self.__query_results(bot_core, prefs)
 
-        return self._results
+        # noinspection PyTypeChecker
+        return self._filter_result(self._results)
 
     def __query_results(self, bot_core, prefs):
         """
@@ -129,7 +131,7 @@ class XSMB:
         # Perform the query and then extract information
         self.__query_results(bot_core, prefs)
 
-        if today in self._results:
+        if self._results is not None and today in self._results:
             return self._results[today]
         return None
 
@@ -243,8 +245,9 @@ class LottoMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
     LOTTO_TIMER = 'LottoMod.timer'
     _mod_name = 'lotto_mod'
     _mod_desc = 'This module update lotto information and also provides user information when asked'
-    _min_check_diff = 5  # in second
+    _min_check_diff = 5  # in seconds
     _bot_info = {}
+    _check_interval = 5  # in seconds
 
     def __init__(self):
         self._prefs = None
@@ -264,6 +267,8 @@ class LottoMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
         if 'options' in self._config:
             if 'min_check_diff' in self._config['options']:
                 self._min_check_diff = self._config['options']['min_check_diff']
+            if 'check_interval' in self._config['options']:
+                self._check_interval = self._config['options']['check_interval']
 
     def __init_lotto_list(self):
         if 'lotto_items' not in self._config:
@@ -312,9 +317,10 @@ class LottoMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
         self._prefs = bot_core.get_prefs().load_prefs(LottoMod.PREFS_NAME)
         if self._prefs is None:
             self._prefs = {}
-        bot_core.register_timer(self, LottoMod.LOTTO_TIMER)
+
         self._bot_info = bot_core.get_bot_info()
         self.__init_lotto_list()
+        bot_core.register_timer(self, LottoMod.LOTTO_TIMER, self._check_interval)
         bot_core.get_logger().debug('[%s] module initialized' % self._mod_name)
 
     def on_message(self, bot_core, msg):

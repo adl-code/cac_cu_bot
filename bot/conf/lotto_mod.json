@@ -4,15 +4,16 @@
       "max_results": 3,
       "min_check_diff": 30,
       "check_time": {
-        "start": "18:15:00",
-        "end": "19:14:59",
+        "start": "18:30:00",
+        "end": "17:15:59",
         "interval": 300
       }
     }
   },
   "channels": ["bk3x"],
   "options": {
-    "min_check_diff": 30
+    "min_check_diff": 30,
+    "check_interval": 10
   },
   "messages": {
     "timer": [
