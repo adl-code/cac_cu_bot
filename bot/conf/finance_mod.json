@@ -1,9 +1,9 @@
 {
   "options": {
     "channels": [
-      "test_bot"
+      "bk3x"
     ],
-    "check_interval": 1,
+    "check_interval": 30,
     "min_check_diff": 30
   },
   "time_frames": {
@@ -11,12 +11,12 @@
       {
         "id": "exchange_rate_morning",
         "start": "08:00:00",
-        "end": "10:30:00"
+        "end": "10:00:00"
       },
       {
         "id": "exchange_afternoon",
         "start": "14:00:00",
-        "end": "15:00:00"
+        "end": "15:30:00"
       },
       {
         "id": "exchange_test",
