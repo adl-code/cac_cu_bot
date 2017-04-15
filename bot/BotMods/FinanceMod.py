@@ -1,7 +1,7 @@
 from BotCore import *
 import time
 import re
-from BotCore.BotEngine import BotEngine as bot
+from BotCore.BotEngine import BotEngine as Bot
 
 
 class FinanceMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
@@ -12,6 +12,7 @@ class FinanceMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
     PREFS_NAME = 'finance_mod'
     MOD_NAME = 'finance_mod'
     MOD_DESC = 'This class provides finance information such as exchange rate ...'
+    MAX_RESULTS = 3
 
     _check_interval = 5  # in seconds
     _time_frames = {}
@@ -34,6 +35,8 @@ class FinanceMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
         if 'working_day' not in self._prefs or today != self._prefs['working_day']:
             self._prefs['working_day'] = today
             self._prefs['processed_frames'] = {}
+            if 'result' in self._prefs:
+                del self._prefs['result']
             bot_core.get_prefs().save_prefs(FinanceMod.PREFS_NAME, self._prefs)
         if timer_id == FinanceMod.exchange_rates_TIMER:
             self.__on_exchange_rates_timer(bot_core)
@@ -71,7 +74,7 @@ class FinanceMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
             self._messages = self._config['messages']
 
     def __on_exchange_rates_timer(self, bot_core):
-        if 'exchange_rates' not in self._time_frames:
+        if 'exchange_rates' not in self._time_frames or len(self._channels) == 0:
             return
         time_frames = self._time_frames['exchange_rates']
         for time_frame in time_frames:
@@ -115,21 +118,24 @@ class FinanceMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
     def __process_exchange_rates_time_frame(self, bot_core, time_frame):
         if not self.__check_time_frame(time_frame):
             return False
-        today = time.strftime('%Y/%m/%d ', time.localtime())
-        if 'results' in self._prefs and today in self._prefs['results'][today]:
-            result = self._pres['results'][today]
-        else:
+        today = time.strftime('%Y/%m/%d', time.localtime())
+        result = None
+        if 'result' in self._prefs:
+            if self._prefs['result']['date'] == today:
+                result = self._prefs['result']
+            else:
+                del self._prefs['result']
+        if result is None:
             result = FinanceMod.__query_exchange_rates()
             if result is not None and today == result['date']:
-                if 'results' not in self._prefs:
-                    self._prefs['results'] = {}
-                self._prefs['results'][today] = result
+                self._prefs['result'] = result
                 bot_core.get_prefs().save_prefs(FinanceMod.PREFS_NAME, self._prefs)
-        if result is not None:
-            self.__response_today_result(bot_core, result)
+            else:
+                result = None
+        if result is not None and self.__response_today_exchange_rates(bot_core, result, time_frame):
             # Mark this time frame as processed
-            # self._prefs['processed_frames'][today] = True
-            # bot_core.get_prefs().save_prefs(FinanceMod.PREFS_NAME, self._prefs)
+            self._prefs['processed_frames'][time_frame['id']] = True
+            bot_core.get_prefs().save_prefs(FinanceMod.PREFS_NAME, self._prefs)
 
     @staticmethod
     def __extract_rate_column_data(col):
@@ -170,14 +176,8 @@ class FinanceMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
 
     @staticmethod
     def __downlooad_exchange_rates():
-        # url = 'https://www.vietcombank.com.vn/exchangerates/ExrateXLS.aspx'
-        # result = BotEngine.BotDownloader.download_to_string(url)
-        try:
-            with open('exrate.htm', 'rb') as f:
-                result = f.read()
-                f.close()
-        except IOError:
-            result = None
+        url = 'https://www.vietcombank.com.vn/exchangerates/ExrateXLS.aspx'
+        result = BotUtils.UrlUtils.download_to_string(url)
         if result is None:
             return None
         parser = BotUtils.HtmlSimpleParser(result)
@@ -207,22 +207,41 @@ class FinanceMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
         date = time.strftime('%Y/%m/%d', date)
         return {'title': title, 'rates': table, 'date': date}
 
-    def __response_today_result(self, bot_core, result):
-        if 'exchange_rates' not in self._messages or 'info' not in self._messages['exchange_rates']:
-            return
+    def __response_today_exchange_rates(self, bot_core, result, time_frame):
         if 'rates' not in result or 'title' not in result:
-            return
-        msg_list = self._messages['exchange_rates']['info']
-        reply_text = BotUtils.RandomUtils.random_item_in_list(msg_list) + '\n>>>'
-        reply_text += '*%s*\n\n' % result['title']
+            return False
+
+        reply_text = '*%s*\n```' % result['title']
         rate_table = result['rates']
-        rate_cnt = len(rate_table) - 1
-        fields = rate_table[0]
-        field_cnt = len(fields)
-        for i in range(rate_cnt):
-            rate = rate_table[i + 1]
-            reply_text += '%s: *%s*, %s: *%s*\n' % (fields[0], rate[0], fields[1], rate[1])
-            reply_text += ', '.join(['%s: *%s*' % (fields[j], rate[j]) for j in range(2, field_cnt)])
-            if i < rate_cnt - 1:
-                reply_text += '\n\n'
-        bot_core.queue_response({bot.KEY_TEXT: reply_text, bot.KEY_CHANNEL_ID: channel_id})
+        row_cnt = len(rate_table)
+        headers = rate_table[0]
+        column_cnt = len(headers)
+        max_widths = [0] * column_cnt
+        for col in range(column_cnt):
+            for i in range(row_cnt):
+                ln = len(unicode(rate_table[i][col], 'utf-8'))
+                if ln > max_widths[col]:
+                    max_widths[col] = ln
+
+        for i in range(row_cnt):
+            row = rate_table[i]
+            for col in range(column_cnt):
+                line = unicode(row[col], 'utf-8').ljust(max_widths[col])
+                reply_text += line.encode('utf-8')
+                if col < column_cnt - 1:
+                    reply_text += ' | '
+                else:
+                    reply_text += ' |\n'
+            if i == 0:
+                reply_text += ' | '.join(['-' * max_widths[col] for col in range(column_cnt)]) + ' |\n'
+
+        reply_text += '```'
+        post_reply = False
+        for ch in self._channels:
+            channel = bot_core.get_channel_by_name(ch)
+            if channel is not None and Bot.KEY_ID in channel:
+                bot_core.queue_response({Bot.KEY_TEXT: reply_text, Bot.KEY_CHANNEL_ID: channel[Bot.KEY_ID]})
+                post_reply = True
+        if post_reply:
+            bot_core.get_logger().info('[%s] display exchange rates in %s' % (self.MOD_NAME, time_frame['id']))
+        return True

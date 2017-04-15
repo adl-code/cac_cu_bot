@@ -10,16 +10,17 @@
     "exchange_rates": [
       {
         "id": "exchange_rate_morning",
-        "start": "08:30:00",
+        "start": "08:00:00",
         "end": "10:30:00"
       },
       {
         "id": "exchange_afternoon",
         "start": "14:00:00",
-        "end": "15:30:00"
+        "end": "15:00:00"
       },
       {
         "id": "exchange_test",
+        "disabled": true,
         "start": "00:00:00",
         "end": "23:59:59"
 
@@ -30,12 +31,7 @@
   "commands": {
     "exchange_rates": [
       "tỉ giá",
-      "ngoại tệ",
-      "giá $",
-      "giá $$$",
-      "giá đô",
-      "giá dollar",
-      "giá euro"
+      "ngoại tệ"
     ]
   },
 
