@@ -1,15 +1,18 @@
+from __future__ import print_function
 from BotCore.BotEngine import BotEngine
 import pkgutil
 import BotMods
 import sys
 import os
 
+PID_FILE = 'cac_cu_bot.pid'
+
 
 def show_help():
-    print 'Usage: BotRunner.py [Options]'
-    print 'Options:'
-    print '       --help: show this screen'
-    print '       --config=<config_file>'
+    print('Usage: BotRunner.py [Options]')
+    print('Options:')
+    print('       --help: show this screen')
+    print('       --config=<config_file>')
 
 
 def parse_options():
@@ -86,6 +89,14 @@ def main():
 
     if not os.path.exists(config_file_path):
         print("Config file not found!")
+        return 1
+
+    try:
+        with open(PID_FILE, "wb") as f:
+            f.write('%d' % os.getpid())
+            f.close()
+    except IOError:
+        print("Failed to write PID file", file=sys.stderr)
         return 1
 
     bot = init_bot(config_file_path)
