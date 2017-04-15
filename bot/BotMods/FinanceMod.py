@@ -2,6 +2,7 @@ from BotCore import *
 import time
 import re
 from BotCore.BotEngine import BotEngine as Bot
+from copy import copy
 
 
 class FinanceMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
@@ -178,8 +179,14 @@ class FinanceMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
     def __downlooad_exchange_rates():
         url = 'https://www.vietcombank.com.vn/exchangerates/ExrateXLS.aspx'
         result = BotUtils.UrlUtils.download_to_string(url)
+        """
+        with open('test.htm', 'rb') as f:
+            result = f.read()
+            f.close()
+        """
         if result is None:
             return None
+
         parser = BotUtils.HtmlSimpleParser(result)
         root = parser.get_root()
         if root is None:
@@ -211,10 +218,11 @@ class FinanceMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
         if 'rates' not in result or 'title' not in result:
             return False
 
-        reply_text = '*%s*\n```' % result['title']
-        rate_table = result['rates']
+        reply_text = '%s\n```' % result['title']
+        rate_table = copy(result['rates'][1:])
         row_cnt = len(rate_table)
-        headers = rate_table[0]
+        headers = result['rates'][0]
+
         column_cnt = len(headers)
         max_widths = [0] * column_cnt
         for col in range(column_cnt):
@@ -223,18 +231,33 @@ class FinanceMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
                 if ln > max_widths[col]:
                     max_widths[col] = ln
 
+        # Add table fake headers
+        headers = [h.split() for h in headers]
+        fake_header_line_cnt = max([len(h) for h in headers])
+        for i in range(fake_header_line_cnt):
+            fake_line = []
+            for j in range(column_cnt):
+                h = headers[j]
+                fake_line.append(h[i] if i < len(h) else ' ')
+            rate_table.insert(i, fake_line)
+        row_cnt += fake_header_line_cnt
+
+        # Then display table
         for i in range(row_cnt):
             row = rate_table[i]
             for col in range(column_cnt):
+                if col == 1:
+                    continue
                 line = unicode(row[col], 'utf-8').ljust(max_widths[col])
                 reply_text += line.encode('utf-8')
                 if col < column_cnt - 1:
                     reply_text += ' | '
                 else:
                     reply_text += ' |\n'
-            if i == 0:
-                reply_text += ' | '.join(['-' * max_widths[col] for col in range(column_cnt)]) + ' |\n'
-
+            if i == fake_header_line_cnt - 1 or i == row_cnt - 1:
+                separator = ['-' * max_widths[col] for col in range(column_cnt)]
+                del separator[1]
+                reply_text += ' | '.join(separator) + ' |\n'
         reply_text += '```'
         post_reply = False
         for ch in self._channels:
