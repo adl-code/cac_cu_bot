@@ -1,10 +1,8 @@
 from BotCore.BotEngine import BotEngine
-from BotCore.BotEngine import BotBaseMod
+import pkgutil
 import BotMods
 import sys
 import os
-import random
-import datetime
 
 
 def show_help():
@@ -42,17 +40,16 @@ def init_bot(config_file_path):
     :param config_file_path: path to the config file
     :return: object pointing to bot engine
     """
+    mods = []
+
+    for _, mod_name, _ in pkgutil.iter_modules(BotMods.__path__):
+        if mod_name.endswith('Mod') and not mod_name.startswith('_'):
+            the_package = __import__('BotMods.' + mod_name)
+            the_module = getattr(the_package, mod_name)
+            the_class = getattr(the_module, mod_name)
+            mods.append(the_class())
+
     bot = BotEngine(config_file_path)
-
-    BotBaseMod.register(BotMods.WeatherMod.WeatherMod)
-    mods = [
-        BotMods.WeatherMod.WeatherMod(),
-        BotMods.IdleMod.IdleMod(),
-        BotMods.InsultMod.InsultMod(),
-        BotMods.LottoMod.LottoMod(),
-        BotMods.UnhandledMsgMod.UnhandledMsgMod()
-    ]
-
     for mod in mods:
         mod_name = mod.get_mod_name()
         if mod_name is None or mod_name == '':
@@ -95,7 +92,7 @@ def main():
     if bot is None:
         print("Failed to initialized bot object")
         return 1
-    random.seed(datetime.datetime.now())
+
     bot.run()
     return 1
 

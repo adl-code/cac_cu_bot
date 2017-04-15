@@ -2,7 +2,7 @@ from BotCore import *
 from BotCore.BotEngine import BotEngine as Bot
 import time
 import datetime
-import random
+
 
 IDLE_TIMER = "IdleMode.timer"
 
@@ -182,7 +182,7 @@ class IdleMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
             return
 
         msg_list = self._messages[reply['message']]
-        reply_msg = msg_list[random.randint(0, len(msg_list) - 1)]
+        reply_msg = BotUtils.RandomUtils.random_item_in_list(msg_list)
 
         if 'vars' in result:
             for var in result['vars']:

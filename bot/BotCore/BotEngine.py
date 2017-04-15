@@ -4,7 +4,6 @@ import logging
 import logging.config
 from slackclient import SlackClient
 import time
-import random
 from threading import Thread, Event, RLock
 
 
@@ -530,7 +529,8 @@ class BotEngine:
     def register_timer(self, timer_obj, timer_id, timer_interval):
         if timer_id is None or timer_obj is None:
             return
-        t = BotThread(timer_interval, self._stop_event, BotEngine.on_timer, args=[self, timer_obj, timer_id])
+        interval = timer_interval if timer_interval > 0 else 1
+        t = BotThread(interval, self._stop_event, BotEngine.on_timer, args=[self, timer_obj, timer_id])
         t.start()
 
     def queue_response(self, response):
@@ -617,17 +617,6 @@ class BotEngine:
                 # One of the module has response
                 self.insert_top_response(response)
                 return
-
-    @staticmethod
-    def random_item_in_list(item_list):
-        """
-        Randomly choose an item in a list
-        :param item_list: the input list
-        :return: item randomly chosen
-        """
-        if item_list is None or len(item_list) == 0:
-            return None
-        return item_list[random.randrange(0, len(item_list) - 1)]
 
     @staticmethod
     def replace_text(original_text, subs_dict):

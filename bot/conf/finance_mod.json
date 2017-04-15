@@ -1,0 +1,56 @@
+{
+  "options": {
+    "channels": [
+      "test_bot"
+    ],
+    "check_interval": 1,
+    "min_check_diff": 30
+  },
+  "time_frames": {
+    "exchange_rates": [
+      {
+        "id": "exchange_rate_morning",
+        "start": "08:30:00",
+        "end": "10:30:00"
+      },
+      {
+        "id": "exchange_afternoon",
+        "start": "14:00:00",
+        "end": "15:30:00"
+      },
+      {
+        "id": "exchange_test",
+        "start": "00:00:00",
+        "end": "23:59:59"
+
+      }
+
+    ]
+  },
+  "commands": {
+    "exchange_rates": [
+      "tỉ giá",
+      "ngoại tệ",
+      "giá $",
+      "giá $$$",
+      "giá đô",
+      "giá dollar",
+      "giá euro"
+    ]
+  },
+
+  "messages": {
+    "exchange_rates": {
+      "info": [
+        "Tỉ giá ngoại tệ:"
+      ],
+      "ask_too_much": [
+        "@$(user) hỏi nhiều thế :vnosebleed:",
+        "@$(user): mình biết nhưng mình không nói đâu :giggle:",
+        "@$(user): đéo nó đâu :cuoinhucho:",
+        ":smirk: không biết nhé @$(user)"
+      ]
+    }
+  }
+
+}

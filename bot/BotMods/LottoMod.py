@@ -2,7 +2,6 @@
 from BotCore import *
 from BotCore.BotEngine import BotEngine as Bot
 import time
-import urllib
 from defusedxml.cElementTree import fromstring
 
 
@@ -35,7 +34,7 @@ class XSMB:
         if 'max_results' in config:
             self._max_results = config['max_results']
 
-    def _filter_result(self, result_list):
+    def __filter_result(self, result_list):
         """
         Filter the result list by keep the most recent items
         :param result_list: result list to filter
@@ -82,7 +81,7 @@ class XSMB:
                     self.__query_results(bot_core, prefs)
 
         # noinspection PyTypeChecker
-        return self._filter_result(self._results)
+        return self.__filter_result(self._results)
 
     def __query_results(self, bot_core, prefs):
         """
@@ -92,7 +91,7 @@ class XSMB:
         :return: results parsed from RSS feed, None if errors occurred
         """
         url = 'http://xskt.com.vn/rss-feed/mien-bac-xsmb.rss'
-        result_list = self._filter_result(XSMB.__parse_rss_data(url))
+        result_list = self.__filter_result(XSMB.__parse_rss_data(url))
         need_update_prefs = False
 
         if XSMB.PREFS_NAME not in prefs:
@@ -142,11 +141,8 @@ class XSMB:
         :param url: url to RSS data to parse
         :return: parsed results
         """
-        try:
-            response = urllib.urlopen(url)
-            data = response.read()
-            response.close()
-        except IOError:
+        data = BotUtils.UrlUtils.download_to_string(url)
+        if data is None:
             return None
         root = fromstring(data)
         result_list = {}
@@ -243,8 +239,8 @@ class LottoMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
     """
     PREFS_NAME = 'lotto_mod'
     LOTTO_TIMER = 'LottoMod.timer'
-    _mod_name = 'lotto_mod'
-    _mod_desc = 'This module update lotto information and also provides user information when asked'
+    MOD_NAME = 'lotto_mod'
+    MOD_DESC = 'This module update lotto information and also provides user information when asked'
     _min_check_diff = 5  # in seconds
     _bot_info = {}
     _check_interval = 5  # in seconds
@@ -294,7 +290,7 @@ class LottoMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
             return None
         if 'messages' not in self._config or 'on_demand' not in self._config['messages']:
             return None
-        msg = Bot.random_item_in_list(self._config['messages']['on_demand'])
+        msg = BotUtils.RandomUtils.random_item_in_list(self._config['messages']['on_demand'])
         msg += '\n>>>'
         for results in result_list:
             for date, result in sorted(results.iteritems(), reverse=True, key=lambda (k, v): (k, v)):
@@ -306,10 +302,10 @@ class LottoMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
         return msg.strip()
 
     def get_mod_name(self):
-        return self._mod_name
+        return self.MOD_NAME
 
     def get_mod_desc(self):
-        return self._mod_desc
+        return self.MOD_DESC
 
     def on_registered(self, bot_core):
         config_file = bot_core.get_config().get_path('lotto_mod_config_file')
@@ -321,7 +317,7 @@ class LottoMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
         self._bot_info = bot_core.get_bot_info()
         self.__init_lotto_list()
         bot_core.register_timer(self, LottoMod.LOTTO_TIMER, self._check_interval)
-        bot_core.get_logger().debug('[%s] module initialized' % self._mod_name)
+        bot_core.get_logger().debug('[%s] module initialized' % LottoMod.MOD_NAME)
 
     def on_message(self, bot_core, msg):
         if not msg[Bot.KEY_IS_MESSAGE] or not msg[Bot.KEY_IS_BOT_MENTIONED]:
@@ -350,7 +346,7 @@ class LottoMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
             # User asks too much
             reply_text = None
             if 'messages' in self._config and 'ask_too_much' in self._config['messages']:
-                reply_text = Bot.random_item_in_list(self._config['messages']['ask_too_much'])
+                reply_text = BotUtils.RandomUtils.random_item_in_list(self._config['messages']['ask_too_much'])
             if reply_text is None:
                 # Return an empty object to specify that this message has been handled
                 return {}
@@ -369,7 +365,7 @@ class LottoMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
         bot_core.get_prefs().save_prefs(LottoMod.PREFS_NAME, self._prefs)
 
         # Then return response
-        bot_core.get_logger().info('[%s] replying to user %s' % (self._mod_name, msg[Bot.KEY_FROM_USER_NAME]))
+        bot_core.get_logger().info('[%s] replying to user %s' % (LottoMod.MOD_NAME, msg[Bot.KEY_FROM_USER_NAME]))
         return {Bot.KEY_TEXT: reply_text, Bot.KEY_CHANNEL_ID: channel_id}
 
     def on_timer(self, timer_id, bot_core):
@@ -383,9 +379,9 @@ class LottoMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
             if result is not None:
                 result_list.append(result)
         msg = self.__format_scheduled_message(result_list)
-        if msg is None or 'channels' not in self._config:
+        if msg is None or 'options' not in self._config or 'channels' not in self._config['options']:
             return
-        for chan in self._config['channels']:
+        for chan in self._config['options']['channels']:
             channel = bot_core.get_channel_by_name(chan)
             if channel is None or Bot.KEY_ID not in channel:
                 continue
@@ -398,7 +394,7 @@ class LottoMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
                 response = {
                     Bot.KEY_TEXT: msg,
                     Bot.KEY_CHANNEL_ID: channel[Bot.KEY_ID]}
-            bot_core.get_logger().info('[%s] displaying results as scheduled' % self._mod_name)
+            bot_core.get_logger().info('[%s] displaying results as scheduled' % LottoMod.MOD_NAME)
             bot_core.queue_response(response)
 
     def __format_scheduled_message(self, result_list):
@@ -411,7 +407,7 @@ class LottoMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
             return None
         msg = {}
         if 'messages' in self._config and 'timer' in self._config['messages']:
-            msg['text'] = Bot.random_item_in_list(self._config['messages']['timer'])
+            msg['text'] = BotUtils.RandomUtils.random_item_in_list(self._config['messages']['timer'])
         attachments = []
         for result in result_list:
             attach = {'title': result['title'], 'text': result['date']}

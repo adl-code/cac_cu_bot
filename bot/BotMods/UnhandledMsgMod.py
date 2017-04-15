@@ -1,6 +1,5 @@
 from BotCore import *
 from BotCore.BotEngine import BotEngine as Bot
-import random
 
 
 class UnhandledMsgMod(BotEngine.BotBaseMod):
@@ -58,7 +57,7 @@ class UnhandledMsgMod(BotEngine.BotBaseMod):
             replay_percentage = int(self._rules['options']['replay_percentage'])
             if replay_percentage > 100:
                 replay_percentage = 100
-            if random.randrange(0, 100) <= replay_percentage:
+            if BotUtils.RandomUtils.random_int(0, 100) <= replay_percentage:
                 response_text = msg['raw']['text'].encode('utf-8').replace(
                     '<@%s>' % self._bot_info['id'], '@%s' % user_name)
                 response = {'text': response_text, 'channel': channel_id}
@@ -70,7 +69,7 @@ class UnhandledMsgMod(BotEngine.BotBaseMod):
         if rule_name not in self._rules:
             return
         msg_list = self._rules[rule_name]
-        response_text = msg_list[random.randrange(0, len(msg_list) - 1)]
+        response_text = BotUtils.RandomUtils.random_item_in_list(msg_list)
 
         for var in response_vars:
             response_text = response_text.replace(var, response_vars[var])

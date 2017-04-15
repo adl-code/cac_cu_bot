@@ -6,7 +6,7 @@ class InsultMod(BotEngine.BotBaseMod):
     This module logs insulting chat from people and behaves accordingly
     """
     PREFS_NAME = 'InsultMod'
-    _mod_name = 'InsultMod'
+    _mod_name = 'insult_mod'
     _mod_desc = 'This module logs insulting chat from people and behaves accordingly'
 
     def get_mod_name(self):
