@@ -220,6 +220,12 @@ class BotEngine:
 
     KEY_TEXT = 'text'
     KEY_LAST_RESPONSE = 'last_response'
+    KEY_RESPONSE_TYPE = 'response_type'
+    KEY_UPLOAD_RESPONSE = 'upload_response'
+    KEY_COMMENT = 'comment'
+    KEY_TITLE = 'title'
+    KEY_FILE_TYPE = 'file_type'
+    KEY_FILE_NAME = 'file_name'
 
     _member_list = {}
     _member_list_name = {}
@@ -583,27 +589,72 @@ class BotEngine:
         return the_msg
 
     def __response(self, response):
-        if response is None or BotEngine.KEY_TEXT not in response or BotEngine.KEY_CHANNEL_ID not in response:
+        if response is None:
             return None
-        text = response[BotEngine.KEY_TEXT]
+        response_type = ''
+        if BotEngine.KEY_RESPONSE_TYPE in response:
+            response_type = response[BotEngine.KEY_RESPONSE_TYPE]
+
+        if BotEngine.KEY_CHANNEL_ID not in response:
+            return None
+
         channel = response[BotEngine.KEY_CHANNEL_ID]
-        if BotEngine.KEY_ATTACHMENTS in response:
-            attachments = response[BotEngine.KEY_ATTACHMENTS]
-        else:
-            attachments = None
+
         if BotEngine.KEY_LAST_RESPONSE in self._prefs:
             last_response = self._prefs[BotEngine.KEY_LAST_RESPONSE]
         else:
             last_response = 0
         if self._slack_client is None or time.time() - last_response < self._post_delay:
             return response
-        self._slack_client.api_call('chat.postMessage',
-                                    channel=channel,
-                                    text=text,
-                                    as_user=True,
-                                    parse='full',
-                                    attachments=attachments,
-                                    link_names=True)
+        if response_type == BotEngine.KEY_UPLOAD_RESPONSE:
+            if BotEngine.KEY_TEXT in response:
+                content = response[BotEngine.KEY_TEXT]
+            else:
+                return None
+
+            if BotEngine.KEY_FILE_TYPE in response:
+                file_type = response[BotEngine.KEY_FILE_TYPE]
+            else:
+                file_type = 'text'
+
+            if BotEngine.KEY_FILE_NAME in response:
+                file_name = response[BotEngine.KEY_FILE_NAME]
+            else:
+                return None
+
+            if BotEngine.KEY_COMMENT in response:
+                comment = response[BotEngine.KEY_COMMENT]
+            else:
+                comment = ''
+
+            if BotEngine.KEY_TITLE in response:
+                title = response[BotEngine.KEY_TITLE]
+            else:
+                return None
+            self._slack_client.api_call('files.upload',
+                                        channels=channel,
+                                        content=content,
+                                        filetype=file_type,
+                                        filename=file_name,
+                                        title=title,
+                                        initial_comment=comment)
+        else:
+            if BotEngine.KEY_ATTACHMENTS in response:
+                attachments = response[BotEngine.KEY_ATTACHMENTS]
+            else:
+                attachments = None
+
+            if BotEngine.KEY_TEXT in response:
+                text = response[BotEngine.KEY_TEXT]
+            else:
+                return None
+            self._slack_client.api_call('chat.postMessage',
+                                        channel=channel,
+                                        text=text,
+                                        as_user=True,
+                                        parse='full',
+                                        attachments=attachments,
+                                        link_names=True)
         self._prefs[BotEngine.KEY_LAST_RESPONSE] = time.time()
         return None
 
