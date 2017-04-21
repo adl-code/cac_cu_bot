@@ -52,7 +52,8 @@ class FinanceMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
             self._prefs = {}
         self._bot_info = bot_core.get_bot_info()
         bot_core.register_timer(self, FinanceMod.exchange_rates_TIMER, self._check_interval)
-        bot_core.get_logger().info('[%s] module initialized' % FinanceMod.MOD_NAME)
+        ts = time.strftime('%H:%M:%S', time.localtime())
+        bot_core.get_logger().info('[%s] module initialized at %s' % (FinanceMod.MOD_NAME, ts))
 
     def on_message(self, bot_core, msg):
         if not msg[Bot.KEY_IS_MESSAGE] or not msg[Bot.KEY_IS_BOT_MENTIONED]:
