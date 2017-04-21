@@ -79,7 +79,7 @@ class FinanceMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
             return
         time_frames = self._time_frames['exchange_rates']
         for time_frame in time_frames:
-            self.__process_exchange_rates_time_frame(bot_core, time_frame)
+            self.__process_exchange_rates_time_frame(bot_core, time_frame, None)
 
     def __check_time_frame(self, time_frame):
         if 'id' in time_frame:
@@ -116,7 +116,7 @@ class FinanceMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
             return False
         return True
 
-    def __process_exchange_rates_time_frame(self, bot_core, time_frame):
+    def __process_exchange_rates_time_frame(self, bot_core, time_frame, filters):
         if not self.__check_time_frame(time_frame):
             return False
         today = time.strftime('%Y/%m/%d', time.localtime())
@@ -133,7 +133,7 @@ class FinanceMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
                 bot_core.get_prefs().save_prefs(FinanceMod.PREFS_NAME, self._prefs)
             else:
                 result = None
-        if result is not None and self.__response_today_exchange_rates(bot_core, result, time_frame):
+        if result is not None and self.__response_today_exchange_rates(bot_core, result, time_frame, filters):
             # Mark this time frame as processed
             self._prefs['processed_frames'][time_frame['id']] = True
             bot_core.get_prefs().save_prefs(FinanceMod.PREFS_NAME, self._prefs)
@@ -214,7 +214,7 @@ class FinanceMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
         date = time.strftime('%Y/%m/%d', date)
         return {'title': title, 'rates': table, 'date': date}
 
-    def __response_today_exchange_rates(self, bot_core, result, time_frame):
+    def __response_today_exchange_rates(self, bot_core, result, time_frame, filters):
         if 'rates' not in result or 'title' not in result:
             return False
 
@@ -251,13 +251,13 @@ class FinanceMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
                 line = unicode(row[col], 'utf-8').ljust(max_widths[col])
                 reply_text += line.encode('utf-8')
                 if col < column_cnt - 1:
-                    reply_text += ' | '
+                    reply_text += '|'
                 else:
-                    reply_text += ' |\n'
+                    reply_text += '|\n'
             if i == fake_header_line_cnt - 1 or i == row_cnt - 1:
                 separator = ['-' * max_widths[col] for col in range(column_cnt)]
                 del separator[1]
-                reply_text += ' | '.join(separator) + ' |\n'
+                reply_text += '|'.join(separator) + '|\n'
         reply_text += '```'
         post_reply = False
         for ch in self._channels:

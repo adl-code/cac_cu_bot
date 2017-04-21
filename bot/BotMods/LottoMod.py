@@ -91,7 +91,10 @@ class XSMB:
         :return: results parsed from RSS feed, None if errors occurred
         """
         url = 'http://xskt.com.vn/rss-feed/mien-bac-xsmb.rss'
+        bot_core.get_logger().info('[%s] start downloading result' % LottoMod.MOD_NAME)
         result_list = self.__filter_result(XSMB.__parse_rss_data(url))
+        bot_core.get_logger().info('[%s] finish downloading result: %s' %
+                                   (LottoMod.MOD_NAME, 'None' if result_list is None else str(len(result_list))))
         need_update_prefs = False
 
         if XSMB.PREFS_NAME not in prefs:
@@ -317,7 +320,7 @@ class LottoMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
         self._bot_info = bot_core.get_bot_info()
         self.__init_lotto_list()
         bot_core.register_timer(self, LottoMod.LOTTO_TIMER, self._check_interval)
-        bot_core.get_logger().debug('[%s] module initialized' % LottoMod.MOD_NAME)
+        bot_core.get_logger().info('[%s] module initialized' % LottoMod.MOD_NAME)
 
     def on_message(self, bot_core, msg):
         if not msg[Bot.KEY_IS_MESSAGE] or not msg[Bot.KEY_IS_BOT_MENTIONED]:
