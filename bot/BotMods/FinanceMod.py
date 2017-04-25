@@ -308,6 +308,8 @@ class FinanceMod(BotEngine.BotBaseMod, BotEngine.BotTimer):
         if title is None or table is None or date is None:
             return None
         date = time.strftime('%Y/%m/%d', date)
+        if len(table) < 10:
+            return None
         return {'title': title, 'rates': table, 'date': date}
 
     def __response_today_exchange_rates(self, bot_core, result, channel_id, filters):
