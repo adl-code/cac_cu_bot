@@ -8,7 +8,9 @@
 
 **/*.iws
 
-.idea/workspace.xml
-.idea/tasks.xml
+**/.idea/workspace.xml
+**/.idea/tasks.xml
 
 **/*.pid
+
+.DS_Store
